@@ -2,9 +2,11 @@ package com.plr.aduaja.service;
 
 import com.plr.aduaja.model.*;
 import com.plr.aduaja.repository.*;
+import com.plr.aduaja.dto.CreateAdminDTO;
 import com.plr.aduaja.dto.CreatePetugasDTO;
 import com.plr.aduaja.dto.RegisterDTO;
 import com.plr.aduaja.dto.ProfileDTO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -13,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 // ============================================================
 // POLYMORPHISM (Run-time Polymorphism): UserServiceImpl
@@ -21,6 +24,7 @@ import java.util.Optional;
 // ABSTRACTION: Controller tidak perlu tahu implementasi ini,
 // hanya tahu interface UserService
 // ============================================================
+@Slf4j
 @Service
 @Transactional
 public class UserServiceImpl implements UserService {  // ← POLYMORPHISM
@@ -39,6 +43,9 @@ public class UserServiceImpl implements UserService {  // ← POLYMORPHISM
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private EmailService emailService;
 
     // CATATAN: @PostConstruct activatePendingUsers() dihapus.
     // Aktivasi akun HANYA dilakukan melalui OtpServiceImpl.verifyOtp()
@@ -212,6 +219,65 @@ public class UserServiceImpl implements UserService {  // ← POLYMORPHISM
         return savedUser;
     }
 
+    @Override
+    public User createAdmin(CreateAdminDTO dto) {
+        if (userRepository.existsByEmail(dto.getEmail())) {
+            throw new RuntimeException("Email sudah terdaftar");
+        }
+
+        User.Role role;
+        try {
+            role = User.Role.valueOf(dto.getRole());
+        } catch (Exception e) {
+            throw new RuntimeException("Role tidak valid: " + dto.getRole());
+        }
+        if (role != User.Role.ADMIN_PUSAT && role != User.Role.ADMIN_DINAS) {
+            throw new RuntimeException("Role harus ADMIN_PUSAT atau ADMIN_DINAS");
+        }
+
+        String tempPassword = UUID.randomUUID().toString().substring(0, 12);
+
+        User user = new User();
+        user.setFullName(dto.getFullName());
+        user.setEmail(dto.getEmail());
+        user.setPhoneNumber(dto.getPhoneNumber());
+        user.setPasswordHash(passwordEncoder.encode(tempPassword));
+        user.setRole(role);
+        user.setAccountStatus(User.AccountStatus.PENDING);
+
+        if (role == User.Role.ADMIN_DINAS) {
+            if (dto.getAgencyId() == null || dto.getAgencyId().isBlank()) {
+                throw new RuntimeException("Dinas/Instansi wajib diisi untuk Admin Dinas");
+            }
+            Agency agency = agencyRepository.findById(dto.getAgencyId())
+                    .orElseThrow(() -> new RuntimeException("Dinas tidak ditemukan"));
+            user.setAgency(agency);
+            user.setRegion(agency.getRegion());
+        }
+
+        if (role == User.Role.ADMIN_PUSAT) {
+            if (dto.getRegionId() == null || dto.getRegionId().isBlank()) {
+                throw new RuntimeException("Wilayah wajib diisi untuk Admin Pusat");
+            }
+            Region region = regionRepository.findById(dto.getRegionId())
+                    .orElseThrow(() -> new RuntimeException("Region tidak ditemukan"));
+            user.setRegion(region);
+        }
+
+        User savedUser = userRepository.save(user);
+
+        // Kirim email dengan kredensial sementara
+        try {
+            String subject = "AduAja - Akun Admin Baru";
+            String html = buildAdminWelcomeEmail(savedUser.getFullName(), dto.getEmail(), tempPassword, role.name());
+            emailService.sendEmail(dto.getEmail(), subject, html);
+        } catch (Exception e) {
+            log.warn("Gagal kirim email ke admin baru {}: {}", dto.getEmail(), e.getMessage());
+        }
+
+        return savedUser;
+    }
+
     @Override  // ← POLYMORPHISM: Override dari interface
     public User updateUser(User user) {
         return userRepository.save(user);
@@ -305,5 +371,58 @@ public class UserServiceImpl implements UserService {  // ← POLYMORPHISM
     @Override  // ← POLYMORPHISM: Override dari interface
     public long countByRole(User.Role role) {
         return userRepository.findByRole(role).size();
+    }
+
+    private String buildAdminWelcomeEmail(String fullName, String email, String tempPassword, String role) {
+        String roleLabel = role.equals("ADMIN_PUSAT") ? "Admin Pusat" : "Admin Dinas";
+        return """
+            <!DOCTYPE html>
+            <html>
+            <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+            <body style="margin:0;padding:0;background-color:#f3f4f6;font-family:'Segoe UI',Arial,sans-serif;">
+                <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;padding:40px 0;">
+                    <tr>
+                        <td align="center">
+                            <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,0.08);overflow:hidden;">
+                                <tr>
+                                    <td style="background:linear-gradient(135deg,#1e40af,#3b82f6);padding:40px 30px;text-align:center;">
+                                        <h1 style="color:#ffffff;font-size:24px;margin:0;font-weight:700;">AduAja</h1>
+                                        <p style="color:#bfdbfe;font-size:14px;margin:8px 0 0;">Sistem Pengaduan Infrastruktur Publik</p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:40px 30px;">
+                                        <h2 style="color:#111827;font-size:20px;margin:0 0 8px;font-weight:600;">Selamat Bergabung, %s!</h2>
+                                        <p style="color:#6b7280;font-size:15px;line-height:1.6;margin:0 0 24px;">
+                                            Akun %s Anda telah berhasil dibuat. Gunakan kredensial di bawah untuk login pertama kali.
+                                        </p>
+                                        <div style="background:#f0f5ff;border:2px dashed #3b82f6;border-radius:12px;padding:24px;margin-bottom:24px;">
+                                            <p style="color:#6b7280;font-size:13px;margin:0 0 4px;">Email</p>
+                                            <p style="font-size:16px;font-weight:600;color:#1e40af;margin:0 0 16px;">%s</p>
+                                            <p style="color:#6b7280;font-size:13px;margin:0 0 4px;">Password Sementara</p>
+                                            <p style="font-size:24px;font-weight:800;letter-spacing:4px;color:#1e40af;font-family:'Courier New',monospace;margin:0;">%s</p>
+                                        </div>
+                                        <div style="background:#fef3c7;border-left:4px solid #f59e0b;border-radius:8px;padding:16px 20px;margin-bottom:24px;">
+                                            <p style="color:#92400e;font-size:13px;margin:0;line-height:1.5;">
+                                                <strong>⚠️ Wajib Ganti Password!</strong> Saat login pertama, Anda akan diminta mengganti password sementara ini.
+                                            </p>
+                                        </div>
+                                        <p style="color:#9ca3af;font-size:13px;margin:0;line-height:1.5;">
+                                            Jika Anda tidak merasa mendaftar, abaikan email ini atau hubungi support@aduaja.go.id.
+                                        </p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="background:#f9fafb;padding:24px 30px;text-align:center;border-top:1px solid #e5e7eb;">
+                                        <p style="color:#9ca3af;font-size:12px;margin:0;">&copy; 2026 AduAja &mdash; Email dikirim otomatis, jangan membalas.</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </body>
+            </html>
+            """.formatted(fullName, roleLabel, email, tempPassword);
     }
 }

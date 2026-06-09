@@ -1,0 +1,4978 @@
+Analisis Kebutuhan Sistem dan Matriks 
+Keterlacakan Berdasarkan Standar 
+ISO/IEC/IEEE 29148:2018 untuk Sistem 
+AduAja V1.0 
+Dinamika Transformasi Digital dalam Rekayasa 
+Perangkat Lunak Pelayanan Publik 
+Pergeseran paradigma pelayanan publik dari metode konvensional menuju ekosistem digital 
+menuntut kerangka kerja rekayasa perangkat lunak yang sangat presisi dan terstruktur. Analisis 
+komprehensif ini membedah dokumen Spesifikasi Kebutuhan Perangkat Lunak (Software 
+Requirements Specification - SRS) untuk Sistem Informasi Pengaduan dan Aspirasi Masyarakat 
+(AduAja) versi 1.0, sebuah platform yang dirancang untuk mengatasi inefisiensi birokrasi dalam 
+penanganan infrastruktur fisik dan fasilitas umum non-darurat.1 Berdasarkan kerangka kerja 
+internasional ISO/IEC/IEEE 29148:2018 yang menetapkan standar siklus hidup rekayasa 
+kebutuhan sistem dan perangkat lunak, spesifikasi ini dievaluasi guna memastikan bahwa 
+setiap entitas kebutuhan memiliki keterlacakan (traceability) yang solid, mulai dari kebutuhan 
+pemangku kepentingan hingga ke desain implementasi teknis terbawah.2 
+Pembedahan dokumentasi SRS AduAja ini tidak hanya sekadar merekam fitur-fitur yang akan 
+dibangun, melainkan mengekstraksi implikasi arsitektural mendalam dari setiap aturan bisnis, 
+pemodelan aliran data, kasus penggunaan (use case), dan batasan antarmuka. Keberhasilan 
+implementasi perangkat lunak di ranah pemerintahan kewilayahan sangat bergantung pada 
+kemampuannya untuk mendamaikan dua kepentingan yang sering kali bertolak belakang: 
+kemudahan akses bagi masyarakat awam tanpa friksi birokrasi, dan kepatuhan absolut 
+terhadap rantai komando administratif, yurisdiksi, serta jejak audit hukum.1 Analisis ini akan 
+menguraikan bagaimana arsitektur sistem AduAja merespons tantangan tersebut melalui 
+mekanisme geospasial, algoritma penggabungan laporan (merge tickets), dan pengawasan 
+Kesepakatan Tingkat Layanan (Service Level Agreement / SLA), yang pada puncaknya 
+disintesiskan ke dalam sebuah Matriks Keterlacakan Kebutuhan (Requirements Traceability 
+Matrix / RTM) yang difilter secara ketat untuk memisahkan kebutuhan esensial dari fitur 
+opsional. 
+Analisis Komparatif Proses Bisnis dan Ketahanan 
+Aturan Domain 
+Transisi proses operasional dari sistem yang sedang berjalan (As-Is) menuju arsitektur digital 
+yang diusulkan (To-Be) merepresentasikan sebuah rekayasa ulang proses bisnis (business 
+process re-engineering) yang fundamental. Pada kondisi As-Is, alur pelaporan diwarnai oleh 
+anomali redudansi data, di mana tumpukan laporan fisik dari berbagai warga mengenai satu 
+lubang jalan yang sama tidak dapat disaring secara efektif oleh resepsionis.1 Selain itu, 
+disorientasi spasial sering melanda petugas teknis lapangan akibat formulir laporan yang hanya 
+mengandalkan patokan alamat lisan atau deskriptif tanpa presisi matematis.1 Sistem To-Be 
+merombak hambatan ini dengan memindahkan beban pembuktian dan penentuan lokasi dari 
+deskripsi manusiawi menuju validasi deterministik berbasis mesin melalui integrasi fitur 
+pengikatan geografis (geotagging) dan pembatasan wilayah (geofencing). 
+Implikasi terbesar dari transformasi ini tercermin dalam penetapan Aturan Bisnis (Business 
+Rules) yang membatasi eksekusi algoritma di dalam peladen. Analisis terhadap aturan BR-01 
+mengonfirmasi bahwa penghitungan waktu tenggat (SLA) tidak berjalan linier selama dua puluh 
+empat jam, melainkan dihentikan pada hari libur dan di luar jam operasional (08:00 hingga 
+16:00).1 Kondisi ini mengharuskan perancang arsitektur basis data untuk tidak bergantung 
+pada stempel waktu (timestamp) standar dari sistem operasi, melainkan harus membangun 
+layanan mikro (microservice) kronometrik khusus yang terintegrasi dengan tabel kalender libur 
+nasional guna mengkalkulasi waktu sisa (countdown) secara dinamis.1 Jika kalkulasi ini tidak 
+dioptimalkan pada sisi peladen, proses rendering antrean laporan di dasbor administrator akan 
+mengalami penurunan performa yang parah (latency) akibat komputasi waktu secara langsung 
+(on-the-fly) pada peramban klien. 
+Lebih lanjut, analisis terhadap aturan BR-02 yang menolak laporan secara otomatis apabila 
+koordinatnya jatuh di luar yurisdiksi kewilayahan instansi menempatkan gerbang logika spasial 
+sebagai validasi lapis pertama.1 Aturan ini membebaskan administrator wilayah dari beban 
+penyortiran manual, namun menciptakan dependensi yang tinggi terhadap modul Global 
+Positioning System (GPS) pada perangkat klien dan layanan pemetaan antarmuka 
+pemrograman aplikasi (API) eksternal. Sementara itu, aturan BR-03 yang secara eksplisit 
+mengecualikan penanganan kondisi darurat tinggi (seperti kebakaran atau kriminalitas) dan 
+murni menggunakan prinsip First-In-First-Out (FIFO) berdasarkan prioritas antrean merupakan 
+keputusan desain yang melindungi sistem dari eksploitasi jalur cepat oleh aktor yang 
+bermaksud memanipulasi urgensi perbaikan infrastruktur.1 
+Arsitektur Aliran Data dan Pemisahan Logika 
+Penyimpanan 
+Konstruksi arsitektur informasi pada sistem AduAja didokumentasikan dengan cermat melalui 
+pemodelan Diagram Aliran Data (Data Flow Diagram / DFD) Level 0 dan Level 1, yang 
+mengilustrasikan pemisahan (decoupling) yang elegan antara ranah interaksi publik dan ranah 
+komando operasional.1 Diagram Konteks Level 0 memetakan lima entitas eksternal yang saling 
+memengaruhi ekosistem sistem: Warga, Administrator Pusat, Administrator Dinas, Petugas 
+Lapangan, dan entitas antarmuka perangkat lunak seperti Layanan Autentikasi, Layanan Lokasi, 
+serta Layanan Notifikasi.1 Pemisahan peran administratif antara Pusat (sebagai validator awal 
+dan distributor) dengan Dinas (sebagai manajer operasional lapangan) mendistribusikan beban 
+kognitif antar-aparatur negara dan meminimalisasi titik kemacetan (bottleneck) dalam 
+birokrasi. 
+Turunan logika pada DFD Level 1 membedah arsitektur ini ke dalam empat proses inti: 
+Manajemen Akun, Pengelolaan Laporan Warga, Disposisi dan Penugasan, serta Eksekusi dan 
+Sengketa.1 Analisis struktural terhadap entitas penyimpanan data (Data Store) mengungkapkan 
+strategi isolasi data yang sangat krusial bagi keamanan dan efisiensi peladen. Sistem 
+memisahkan secara fisik antara tabel D2 Data Laporan (yang berisikan data keluhan asli 
+masyarakat) dengan tabel D3 Data Penugasan (yang berisikan catatan pengerjaan teknis, foto 
+perbaikan, dan instruksi internal).1 Desain basis data relasional ini memastikan bahwa 
+perpindahan wewenang dari Administrator Pusat ke Dinas tidak memicu duplikasi seluruh baris 
+laporan; sistem hanya menginjeksikan kunci tamu (foreign key) ID Tiket dari tabel D2 ke dalam 
+entitas D3 yang baru dibuat. Isolasi ini memitigasi risiko tereksposnya percakapan teknis atau 
+logistik material kepada masyarakat umum, sekaligus mempertahankan integritas data laporan 
+orisinal (immutable origin) yang sama sekali tidak boleh diubah oleh petugas di lapangan. 
+Pengkajian terhadap Spesifikasi Proses (Process Specification / PSpec) 2.0 mengenai 
+Pengelolaan Laporan Warga memperlihatkan titik rawan eksekusi logika sinkron (synchronous 
+execution). Sebelum sebuah masukan data laporan baru diperbolehkan menyentuh tabel D2, 
+prosedur memerintahkan transmisi Data Koordinat ke Layanan Lokasi eksternal guna memicu 
+proses pemetaan alamat balikan (Geocoding).1 Intervensi eksternal ini, meskipun 
+meningkatkan akurasi data wilayah, menempatkan ketersediaan sistem AduAja di bawah belas 
+kasihan waktu respons API pemetaan pihak ketiga. Implikasi arsitektural dari PSpec 2.0 ini 
+menuntut implementasi mekanisme toleransi kesalahan, seperti sistem percabangan asinkron 
+(asynchronous queuing) yang dapat menyimpan masukan masyarakat ke dalam memori 
+perantara (buffer) seandainya API pemetaan mengalami gangguan sesaat. 
+Dekonstruksi Model Fungsional dan Skenario 
+Penggunaan (Use Case) 
+Pemodelan antarmuka fungsional AduAja dikemas ke dalam dua belas Kasus Penggunaan (Use 
+Case) yang mencerminkan rentang aktivitas dari inisiasi hingga resolusi komplain.1 Analisis 
+mendalam terhadap spesifikasi Use Case ini menemukan sejumlah algoritma prosedural yang 
+menuntut pengawasan ketat saat fase pengembangan, terutama menyangkut sinkronisasi 
+state (status) antara berbagai entitas yang beroperasi secara serentak. 
+Kasus Penggunaan UC2 (Membuat Laporan Baru) mempertegas penolakan absolut sistem 
+terhadap pengisian formulir jika akses modul GPS dan modul kamera ditolak oleh perangkat 
+peramban gawai milik warga.1 Ini didukung oleh restriksi yang memblokir galeri ponsel lokal 
+agar gambar yang dikirimkan terjamin sebagai representasi realitas lapangan seketika (real-
+time capture), bukan manipulasi arsip masa lalu. Validasi ini bersinggungan langsung dengan 
+sistem keamanan, menciptakan hambatan teknis yang disengaja guna memastikan tingkat 
+presisi audit forensik dari setiap piksel foto yang terekam di dalam basis data.1 
+Kompleksitas algoritma tertinggi ditemukan pada alur kerja UC8, yaitu Menggabungkan Tiket 
+(Merge Ticket) yang dieksekusi oleh Administrator Pusat. Sistem dirancang untuk menyajikan 
+indikator peringatan otomatis (potensi duplikasi) apabila terdeteksi laporan baru yang jatuh 
+pada koordinat radius lima puluh meter dari tiket yang sedang aktif, dengan kategori kerusakan 
+yang identik.1 Mekanisme penggabungan menetapkan satu laporan sebagai Laporan Utama 
+(Parent Ticket) dan menautkan laporan lainnya sebagai Laporan Turunan (Child Ticket). 
+Konsekuensi teknis dari relasi taksonomi basis data ini sangat besar. Sesuai dengan spesifikasi, 
+Child Ticket akan disembunyikan dari antrean kerja utama agar Dinas tidak melakukan 
+pengerjaan ganda yang memboroskan anggaran negara.1 Namun, sistem tetap memelihara 
+siklus hidup notifikasi dari entitas Child Ticket tersebut; artinya, seluruh warga dalam klaster 
+laporan tersebut akan menerima pemberitahuan penyelesaian secara independen ketika 
+Parent Ticket ditutup.1 
+Skenario eksekusi lapangan dalam UC11 (Memperbarui Status Pengerjaan) menyingkap 
+penerapan teknologi geofencing yang agresif. Saat seorang petugas menekan tombol 
+konfirmasi bahwa pekerjaan telah dimulai atau diselesaikan, sistem tidak serta-merta mencatat 
+perubahan status tersebut. Sistem terlebih dahulu memaksa pelacakan geolokasi satelit secara 
+seketika pada gawai petugas; jika algoritma mendeteksi bahwa letak absolut gawai berada di 
+luar batas radius lokasi yang ditentukan pada tiket (misalnya petugas memperbarui status dari 
+rumah atau kantor), sistem akan menolak penyelesaian tugas secara sepihak dan 
+menggagalkan transisi basis data.1 Integrasi ini sangat efektif untuk memerangi kecurangan 
+presensi, namun mewajibkan adanya mitigasi khusus untuk anomali sinyal GPS (GPS drift) yang 
+sering terjadi di bawah halangan infrastruktur beton kota. 
+Analisis lebih lanjut pada UC4 (Mengonfirmasi Laporan Selesai) dan ekskalasinya pada UC5 
+(Mengajukan Sengketa) menyoroti penyelesaian siklus akhir yang mengadopsi model 
+konsensus asinkron. Petugas yang menandai tugas selesai tidak memicu penutupan tiket 
+secara permanen, melainkan mengubah state menjadi "Menunggu Konfirmasi Warga". 
+Kegagalan warga untuk merespons dalam waktu 3x24 jam operasional akan mengeksekusi 
+penutupan otomatis (auto-close).1 Sebaliknya, jika warga menolak kualitas pekerjaan, tiket 
+beralih ke status "Sengketa" dan melompat kembali ke dalam ranah UC10 (Memberikan 
+Resolusi Sengketa) untuk dievaluasi oleh Administrator Dinas.1 Untuk mencegah terjadinya 
+putaran sengketa tanpa akhir (infinite feedback loop) yang dapat digunakan warga untuk 
+meneror aparat, spesifikasi secara eksplisit membatasi hak pengajuan penolakan maksimal 
+satu kali per Nomor Tiket.1 
+Evaluasi Spesifikasi Antarmuka Eksternal 
+Keberhasilan integrasi AduAja dengan ekosistem perangkat lunak yang lebih luas ditentukan 
+oleh Spesifikasi Kebutuhan Antarmuka Eksternal (External Interface Requirements / EIR). 
+Analisis EIR menunjukkan bahwa platform ini sepenuhnya dibangun sebagai Aplikasi Web 
+Responsif tanpa mengharuskan instalasi aplikasi native pada sistem operasi Android atau iOS.1 
+Keputusan arsitektural ini secara drastis menekan biaya pemeliharaan di masa depan (reduce 
+technical debt) dan mempercepat penetrasi ke masyarakat, namun menuntut optimalisasi 
+peramban (browser) yang sangat tinggi. 
+Antarmuka Perangkat Lunak (EIR-SW) mengamanatkan integrasi dengan protokol OAuth 2.0 
+untuk mengakomodasi fitur Masuk Tunggal (Single Sign-On / SSO) menggunakan akun pihak 
+ketiga, serta mewajibkan sistem manajemen basis data relasional (RDBMS) standar industri 
+guna menjaga struktur tabel D2 dan D3.1 Protokol komunikasi asinkron antara antarmuka 
+pengguna di sisi klien (front-end) dan logika inti di sisi peladen (back-end) distandardisasi 
+menggunakan representasi objek JavaScript (JSON), yang dikirim secara eksklusif melalui 
+terowongan terenkripsi Hypertext Transfer Protocol Secure (HTTPS) demi menggagalkan 
+upaya penyadapan paket data (packet sniffing) oleh peretas (EIR-COM-01 dan EIR-COM-03).1 
+Selain itu, jembatan komunikasi dengan warga di luar platform dijamin melalui pemanfaatan 
+Simple Mail Transfer Protocol (SMTP) untuk transmisi peringatan batas waktu (SLA) dan 
+pendistribusian sandi rahasia sekali pakai (OTP) secara mulus.1 
+Salah satu antarmuka perangkat keras (Hardware Interfaces) yang paling kritis adalah 
+keharusan sistem web ini untuk menembus lapisan privasi perangkat klien demi mengendalikan 
+modul Kamera dan sensor Global Positioning System (GPS) (EIR-HW-02 dan EIR-HW-03).1 
+Interaksi mendalam antara elemen dokumen HTML5 dengan antarmuka pemrograman 
+perangkat keras ini membutuhkan persetujuan manifes keamanan tingkat tinggi pada 
+peramban gawai pengguna, yang apabila ditolak, akan melumpuhkan fungsi inti sistem. 
+Pembedahan Atribut Kualitas dan Kebutuhan Non-
+Fungsional 
+Spesifikasi Kebutuhan Non-Fungsional (Non-Functional Requirements / NFR) mendefinisikan 
+batasan ambang kinerja, parameter perlindungan, dan metrik kualitas operasional dari 
+platform. Pembedahan pada blok kebutuhan kinerja (Performance Requirements) 
+memperlihatkan standar eksekusi yang ketat, di mana kalkulasi dinamis hitung mundur SLA 
+tidak diizinkan membebani sirkuit komputasi pada peramban pengguna, melainkan harus 
+diproses seluruhnya secara efisien di memori sisi peladen (NFR-PER-03).1 Bahkan, algoritma 
+penyaringan spasial diinstruksikan untuk mampu menyelesaikan kalkulasi deviasi radius 
+koordinat dalam batas maksimal perhitungan sepersekian detik guna memastikan pengalaman 
+navigasi antarmuka beranda yang mulus tanpa hambatan.1 
+Pada domain Keandalan dan Toleransi Kesalahan (Reliability & Fault Tolerance), analisis 
+mengidentifikasi ancaman tumpang tindih otorisasi ketika banyak administrator mencoba 
+memodifikasi laporan yang sama pada detik yang bersamaan. NFR-REL-04 merespons 
+ancaman konkurensi (concurrency) ini dengan penerapan penguncian baris basis data (record 
+locking), di mana modifikasi dari satu sesi administratif akan segera membekukan akses 
+modifikasi untuk administrator lainnya, mengubah antarmuka mereka menjadi mode baca-saja 
+(read-only).1 Lebih dalam lagi, arsitektur basis data diwajibkan menjunjung prinsip transaksi 
+atomik (atomic transaction) yang direpresentasikan dalam NFR-REL-06, memastikan bahwa 
+sebuah set pembaruan data secara parsial akan digagalkan (rollback) sepenuhnya apabila 
+proses transmisi terputus di tengah jalan, menghindari kondisi korupsi data yang ireversibel.1 
+Ketahanan terhadap jaringan tak stabil difasilitasi melalui mekanisme penyimpanan proksi lokal 
+(browser cache) dalam NFR-REL-03, memungkinkan peramban menahan unggahan data 
+sementara dan menembakkannya kembali secara otomatis saat sinyal kembali pulih, sebuah 
+spesifikasi vital bagi petugas lapangan di zona buta sinyal (blank spot).1 
+Dimensi Keamanan dan Integritas (Security & Data Integrity) menetapkan standar perlindungan 
+platform terhadap manipulasi teknis dari dalam maupun luar sistem. NFR-INT-01 melarang 
+penggunaan waktu sistem gawai lokal dan memaksa validasi stempel waktu sepenuhnya dari 
+server pusat, sebuah langkah fundamental yang membunuh potensi manipulasi bukti 
+keterlambatan.1 Secara paralel, perlindungan muatan diatur melalui penyaringan ekstensi 
+berkas visual yang ketat dan pemblokiran ukuran raksasa demi mencegah serangan injeksi 
+kode berbahaya (malware payload) yang menyamar sebagai berkas gambar (NFR-INT-02). 
+Akses masuk (login) dijaga oleh pembatasan rasio algoritma yang mengeksekusi pemblokiran 
+sementara (temporary lockout) usai lima kegagalan berturut-turut, menyumbat ruang gerak 
+serangan tebakan paksa sandi (brute-force attacks) secara definitif (NFR-SEC-03).1 
+Pemantauan jejak operasi sistem ditegakkan melalui arsitektur Pencatatan Audit (Audit Trail) 
+yang diuraikan pada NFR-AUD-01 dan NFR-AUD-02. Seluruh manipulasi kritis—seperti 
+pengaktifan jeda waktu, penolakan sengketa, resolusi selesai, dan disposisi yurisdiksi—wajib 
+dicetak ke dalam entitas tabel yang terisolasi secara kriptografis atau berkonfigurasi murni 
+tambah-saja (append-only), menjadikannya data permanen tak terubahkan (immutable data).1 
+Keberadaan log yang tidak dapat dihapus, bahkan oleh administrator super sekalipun, 
+merupakan landasan pertanggungjawaban hukum sistem perangkat lunak pemerintahan. 
+Kepatuhan hukum ini disinergikan dengan regulasi perlindungan data privasi (NFR-LEG-01), 
+yang memaksa mesin rendering antarmuka untuk menyensor variabel sensitif seperti identitas 
+kependudukan dan titik koordinat ekstrem rumah pelapor saat ditinjau dari portal masyarakat 
+publik, menjaga keseimbangan hak atas informasi dengan privasi individu.1 
+Metodologi Penyusunan Matriks Keterlacakan 
+Kebutuhan IEEE 29148 
+Dokumen Matriks Keterlacakan Kebutuhan (Requirements Traceability Matrix / RTM) 
+merupakan artefak kritis dalam manajemen siklus hidup rekayasa sistem yang memetakan 
+keterkaitan dua arah (bidirectional mapping). RTM mendemonstrasikan pelacakan ke belakang 
+(backward traceability) menuju asal usul kebutuhan bisnis atau pemodelan use case, dan 
+pelacakan ke depan (forward traceability) menuju desain basis data dan kasus uji validasi di 
+masa mendatang.4 Menurut kerangka metodologi ISO/IEC/IEEE 29148:2018, ketiadaan matriks 
+yang terstruktur rapi sering kali mengakibatkan pengembang merancang arsitektur perangkat 
+lunak yang melenceng dari konsensus awal pemangku kepentingan (requirements drift).2 Di 
+dalam proyek skala institusi yang diwajibkan menjalani audit tingkat tinggi, keberadaan RTM 
+dengan identifikasi penomoran linier (unique ID) mutlak diperlukan sebagai bukti material 
+(execution evidence) bahwa suatu fitur benar-benar telah dipenuhi tanpa anomali.2 
+Pada tahap abstraksi dokumen AduAja V1.0, konvensi peristilahan menetapkan klasifikasi 
+prioritas yang berbasis pada standar semantik IEEE Std 830-1998 dan ISO/IEC/IEEE 29148.1 
+Semantik ini memisahkan hierarki kewajiban implementasi ke dalam tiga strata: "AKAN" (SHALL) 
+yang bermakna wajib tanpa kompromi; "HARUS" (SHOULD) yang bermakna sangat disarankan 
+namun tidak menggagalkan logika transaksional inti (dapat dianulir untuk mempercepat 
+peluncuran Minimum Viable Product); dan "DAPAT/BOLEH" (CAN/MAY) yang murni berstatus 
+opsional atau kosmetik.1 
+Berdasarkan instruksi perancangan, tahapan sintesis data mengimplementasikan penyaringan 
+agresif yang melenyapkan seluruh spesifikasi non-kritis. Hal ini berarti setiap kebutuhan 
+fungsional (FR) dan non-fungsional (NFR) yang mengandung predikat "HARUS" dan 
+"DAPAT/BOLEH" dieksklusi (dikeluarkan) dari Matriks Keterlacakan ini demi menjaga kemurnian 
+fokus teknis para perancang kode perangkat lunak (software engineers) pada elemen-elemen 
+paling fundamental penyusun sistem. Beberapa spesifikasi seperti fungsionalitas material 
+logistik opsional (FR-PTG-23 hingga FR-PTG-26), mode luring canggih (FR-PTG-31), integrasi 
+pihak ketiga eksternal untuk login (FR-AKN-04), hingga arsitektur cadangan otomatis lanjutan 
+(NFR-AUD-04) digugurkan dari daftar ini.1 Proses ini menghasilkan fondasi spesifikasi wajib 
+yang dipetakan ke dalam format standar IEEE, memuat kolom ID Registrasi, Deskripsi Ekstraktif, 
+Klasifikasi Tipe, dan Referensi Asal Jejak Bisnis (seperti rujukan PSpec, DFD, atau Tabel Use 
+Case).5 
+Matriks Keterlacakan Kebutuhan Esensial (RTM) 
+Tabel-tabel berikut menyajikan pemetaan keterlacakan spesifikasi yang telah disaring secara 
+presisi. Keseluruhan ID Requirement di bawah ini dijamin sebagai entitas yang bersifat imperatif 
+mutlak (Wajib / SHALL) bagi fondasi arsitektur AduAja V1.0. 
+Tabel 1: Klaster Autentikasi, Otentikasi, dan Keamanan Sesi Pengguna 
+Klaster matriks ini mendasari fondasi identitas entitas dan kontrol akses, memetakan 
+spesifikasi manajemen gerbang masuk dengan validasi sesi yang terenkripsi dan tahan 
+terhadap manipulasi manipulasi peretas. 
+ID Kebutuhan 
+Deskripsi 
+Kebutuhan Mutlak 
+(Wajib)
+Kategori 
+Jejak Referensi 
+Asal (Traceability 
+Source)
+FR-AKN-01 
+Sistem 
+menyediakan 
+halaman registrasi 
+Warga dengan 
+formulir isian data 
+ringkas dan mudah 
+Fungsional 
+PSpec 1.0, Tabel 
+UC1 
+diakses.
+FR-AKN-02 
+Sistem 
+menyediakan 
+antarmuka login 
+yang menuntut 
+kredensial berupa 
+email atau nomor 
+HP.
+Fungsional 
+PSpec 1.0, 
+UC_Login 
+FR-AKN-03 
+Sistem memvalidasi 
+dan memverifikasi 
+identitas pengguna 
+menggunakan 
+transmisi kode OTP 
+(One-Time 
+Password).
+Fungsional 
+PSpec 1.0, Tabel 
+UC1 
+FR-AKN-05 
+Sistem 
+menyediakan jalur 
+pemulihan fitur lupa 
+kata sandi dengan 
+verifikasi kode OTP 
+dan tautan ke email.
+Fungsional 
+PSpec 1.0 
+FR-AKN-08 
+Sistem 
+menghasilkan 
+penomoran ID 
+identitas unik, 
+menetapkan limitasi 
+peran, dan 
+pengaitan batas 
+wilayah kerja untuk 
+akun Administrator.
+Fungsional 
+PSpec 1.0, D1 Data 
+Akun 
+FR-AKN-09 
+Sistem 
+menghasilkan 
+Fungsional 
+PSpec 1.0 
+formulasi tautan 
+aktivasi sistem atau 
+kata sandi berbatas 
+waktu sementara 
+bagi akun 
+administrator baru.
+FR-AKN-10 
+Sistem 
+memaksakan 
+kewajiban bagi 
+administrator untuk 
+mengganti sandi 
+sementara saat 
+siklus login pertama 
+kalinya.
+Fungsional 
+PSpec 1.0, 
+UC_Login 
+FR-AKN-12 
+Sistem melengkapi 
+Administrator 
+Wilayah dengan 
+fasilitas Dasbor 
+Manajemen guna 
+mendaftarkan akun 
+hierarki Petugas 
+Lapangan.
+Fungsional 
+D1 Data Akun, 
+PSpec 1.0 
+FR-AKN-13 
+Sistem 
+mengirimkan 
+transmisi tautan 
+aktivasi langsung 
+atau pemberian 
+kata sandi 
+sementara kepada 
+Petugas Lapangan 
+baru.
+Fungsional 
+PSpec 1.0 
+FR-AKN-14 
+Sistem 
+menyediakan 
+Fungsional 
+PSpec 1.0 
+fungsionalitas 
+pemulihan 
+pembaruan kata 
+sandi khusus 
+Petugas dengan 
+verifikasi keamanan 
+nomor seluler.
+NFR-SEC-01 
+Sistem menerapkan 
+restriksi validasi 
+kata sandi berlevel 
+kuat (komposisi 
+minimum 8 
+karakter, 
+kapitalisasi, digit, 
+simbol).
+Non-Fungsional 
+Tabel UC1 
+NFR-SEC-02 
+Sistem memblokir 
+inisiasi akses 
+sebelum token OTP 
+diverifikasi, dan 
+memastikan 
+pendaftaran 
+administrator 
+berbasis alamat 
+email domain resmi 
+instansi 
+pemerintah.
+Non-Fungsional 
+Tabel UC1 
+NFR-SEC-03 
+Sistem mendeteksi 
+dan secara 
+otomatis mengunci 
+instrumen login 
+sementara waktu 
+setelah kalkulasi 
+lima kali kegagalan 
+pemasukan 
+kredensial berturut-
+Non-Fungsional 
+UC_Login 
+turut.
+NFR-SEC-04 
+Sistem mendeteksi 
+kekosongan 
+interaksi kursor dan 
+mematikan sesi 
+akses (timeout 
+session) dengan 
+paksa dalam 
+interval waktu yang 
+ditentukan.
+Non-Fungsional 
+UC_Login, PSpec 
+1.0 
+NFR-SEC-05 
+Sistem melucuti 
+secara otomatis 
+seluruh sesi aktif 
+gawai pengguna 
+yang tersebar di 
+beragam perangkat 
+tepat ketika 
+penggantian kata 
+sandi dikonfirmasi.
+Non-Fungsional 
+PSpec 1.0 
+NFR-SEC-06 
+Sistem menerapkan 
+pemblokiran lintas 
+otoritas secara 
+ketat di ranah sisi 
+peladen untuk 
+melindungi batas 
+akses memanipulasi 
+informasi 
+antarentitas 
+(server-side 
+validation).
+Non-Fungsional 
+DFD Level 1 
+Tabel 2: Klaster Interaksi Eksternal (Warga) dan Perekaman 
+Geospasial 
+Matriks ini menautkan alur pergerakan Warga dalam mengonstruksi laporan kerusakan, 
+memastikan perlindungan input visual secara organik dan peracikan koordinat lintang serta 
+bujur yang sangat akurat. 
+ID Kebutuhan 
+Deskripsi 
+Kebutuhan Mutlak 
+(Wajib)
+Kategori 
+Jejak Referensi 
+Asal (Traceability 
+Source)
+FR-WRG-01 
+Sistem 
+menampilkan laman 
+beranda utama 
+yang dirender 
+khusus untuk 
+spesifikasi profil 
+Warga pasca-
+autentikasi jaringan.
+Fungsional 
+DFD Level 1 
+FR-WRG-02 
+Sistem 
+menampilkan 
+tombol panggilan 
+tindakan (call-to-
+action) utama untuk 
+fungsionalitas 
+pemicuan "Buat 
+Laporan Baru" pada 
+layar beranda.
+Fungsional 
+Tabel UC2 
+FR-WRG-03 
+Sistem menata dan 
+menampilkan 
+modul ringkasan 
+rekapitulasi data 
+hitungan status 
+laporan secara 
+numerik.
+Fungsional 
+Tabel UC3 
+FR-WRG-04 
+Sistem menata blok 
+antrean daftar 
+riwayat pelaporan 
+Fungsional 
+Tabel UC3, D2 
+Laporan 
+terbaru secara 
+kronologis.
+FR-WRG-05 
+Sistem 
+menampilkan label 
+lencana indikasi 
+perubahan status 
+secara grafis pada 
+tiap-tiap komponen 
+kartu riwayat 
+laporan Warga.
+Fungsional 
+Tabel UC3 
+FR-WRG-06 
+Sistem merender 
+pencatatan 
+pembaruan data 
+waktu teraktual 
+secara langsung 
+pada baris 
+komponen kartu 
+laporan.
+Fungsional 
+Tabel UC3 
+FR-WRG-07 
+Sistem melengkapi 
+Warga dengan 
+modul kotak isian 
+pencarian guna 
+penelusuran 
+pelacakan status 
+lewat injeksi Nomor 
+ID Tiket.
+Fungsional 
+Tabel UC3 
+FR-WRG-08 
+Sistem 
+mengeluarkan 
+jendela dialog 
+penuntutan izin 
+akses antarmuka 
+pemrograman 
+Kamera dan 
+Fungsional 
+Tabel UC2, UC_GPS 
+perangkat keras 
+sensor modul GPS 
+pada tahap 
+prakondisi.
+FR-WRG-09 
+Sistem 
+menonaktifkan fitur 
+unggah memori 
+lokal dan mengunci 
+sumber 
+pembuktian foto 
+mutlak via bidikan 
+modul lensa kamera 
+secara seketika 
+(real-time).
+Fungsional 
+Tabel UC2 
+FR-WRG-10 
+Sistem 
+mengekstraksi 
+secara transparan 
+dan mengkapsulasi 
+data koordinat titik 
+geospasial (garis 
+lintang dan garis 
+bujur) dari modul 
+GPS ke media foto.
+Fungsional 
+PSpec 2.0, D2 
+Laporan 
+FR-WRG-11 
+Sistem 
+menampilkan 
+pemetaan proyektif 
+interaktif 
+bersumber dari 
+koordinat yang 
+direkam dengan 
+opsi penggeseran 
+kalibrasi manual 
+titik sentral.
+Fungsional 
+Tabel UC2 
+FR-WRG-12 
+Sistem 
+menampilkan 
+formulir muatan 
+deskriptif berisi 
+klasifikasi opsi 
+kategori jenis 
+kerusakan, medan 
+teks deskripsi 
+detail, dan letak 
+penanda geografis 
+patokan pelengkap.
+Fungsional 
+PSpec 2.0, Tabel 
+UC2 
+FR-WRG-13 
+Sistem 
+menangguhkan 
+eksekusi transmisi 
+ke pangkalan data 
+guna memunculkan 
+antarmuka tinjauan 
+sementara 
+(preview) 
+penegasan 
+konfirmasi aksi.
+Fungsional 
+Tabel UC2 
+FR-WRG-14 
+Sistem melahirkan 
+nomor seri tiket 
+penelusuran unik 
+secara algoritmik 
+sembari 
+mendeklarasikan 
+status awal formasi 
+dengan tanda 
+"Menunggu 
+Verifikasi".
+Fungsional 
+Tabel UC2, D2 
+Laporan 
+FR-WRG-15 
+Sistem 
+memberlakukan 
+penolakan absolut 
+formasi pelaporan 
+Fungsional 
+Tabel UC2 
+disertai 
+pemunculan 
+spanduk peringatan 
+krusial bila akses 
+kamera dan GPS 
+ditolak perangkat 
+proksi.
+FR-WRG-16 
+Sistem menangkal 
+eksekusi unggahan 
+manakala skrip 
+deteksi validasi 
+menemukan medan 
+isian pakem kosong 
+tak berjawab atau 
+kualifikasi teks 
+minim tak 
+tercukupi.
+Fungsional 
+Tabel UC2 
+FR-WRG-17 
+Sistem 
+memproyeksikan 
+pemberitahuan 
+umpan balik 
+spesifik dari 
+Administrator 
+apabila laporan 
+masuk ke siklus 
+revisi paksa 
+perbaikan muatan.
+Fungsional 
+PSpec 2.0 
+FR-WRG-18 
+Sistem 
+membebaskan 
+status penguncian 
+atribut mutasi data 
+foto, lokasi, dan 
+teks khusus pada 
+momen transisi 
+laporan 
+Fungsional 
+PSpec 2.0 
+berkedudukan 
+"Direvisi".
+FR-WRG-19 
+Sistem menutup 
+ulang celah 
+pengubahan 
+manipulasi formasi 
+dan mengatur 
+kembali status 
+menjadi posisi awal 
+usai revisi 
+tervalidasi.
+Fungsional 
+PSpec 2.0 
+FR-WRG-20 
+Sistem 
+mengonstruksi 
+tampilan riwayat 
+daftar akumulatif 
+tabel tiket dengan 
+prinsip penyortiran 
+kronologis menurun 
+dari pembaruan 
+terkini hingga yang 
+lawas (descending).
+Fungsional 
+Tabel UC3 
+FR-WRG-21 
+Sistem 
+menyediakan laman 
+eksplorasi hierarkis 
+laporan berisikan 
+teks detail, galeri 
+foto terpadu, dan 
+garis waktu historis 
+lintasan modifikasi 
+status tiket.
+Fungsional 
+Tabel UC3 
+FR-WRG-22 
+Sistem 
+mereplikasikan 
+pencitraan tata 
+Fungsional 
+Tabel UC3 
+letak letak 
+koordinat pada 
+modul peta 
+terintegrasi di 
+relung halaman 
+deskripsi detail 
+laporan tiket 
+Warga.
+FR-WRG-23 
+Sistem membekali 
+Warga dengan 
+instrumen 
+pembatalan 
+destruktif laporan 
+eksklusif dengan 
+limitasi batasan 
+hanya saat berada 
+dalam jendela 
+waktu tahap awal 
+"Menunggu 
+Verifikasi".
+Fungsional 
+PSpec 2.0 
+Tabel 3: Klaster Administrasi Pemerintahan, Penyortiran Antrean, dan 
+Algoritma Penggabungan Tiket 
+Klaster ini mendudukkan batasan kewenangan Administrator dalam melakukan filtrasi 
+penyaringan yurisdiksi, pembacaan resolusi, hingga rekayasa efisiensi algoritma de-duplikasi 
+tiket laporan. 
+ID Kebutuhan 
+Deskripsi 
+Kebutuhan Mutlak 
+(Wajib)
+Kategori 
+Jejak Referensi 
+Asal (Traceability 
+Source)
+FR-ADM-01 
+Sistem membatasi 
+visualisasi distribusi 
+data laporan 
+sehingga hak 
+Fungsional 
+PSpec 3.0, DFD Lv 1 
+penayangan hanya 
+merepresentasikan 
+batas otoritas 
+geografis yang 
+dimiliki oleh tiap-
+tiap akun 
+Administrator.
+FR-ADM-02 
+Sistem 
+menstrukturisasi 
+laporan dalam 
+format susunan 
+tabel kolom dinamis 
+memuat identifikasi 
+Tiket, entitas 
+Pelapor, Taksonomi 
+Kategori, serta 
+kedudukan batas 
+Status.
+Fungsional 
+Tabel UC6 
+FR-ADM-03 
+Sistem 
+menyematkan 
+kotak isian 
+penelusuran kata 
+kunci, opsi saringan 
+berlapis, teknik 
+pengurutan metrik, 
+serta paginasi 
+perpindahan 
+halamat di dasbor 
+antrean.
+Fungsional 
+Antarmuka Antrean 
+FR-ADM-05 
+Sistem 
+mendisplaikan 
+informasi rincian 
+laporan secara 
+menyeluruh 
+meliputi jejak 
+Fungsional 
+Tabel UC6 
+pelapor, pemetaan 
+peta spasial, 
+koordinat angka 
+astronomis, bukti 
+foto digital, 
+deskripsi, dan 
+catatan kronologi 
+waktu.
+FR-ADM-06 
+Sistem 
+mengekstraksi dan 
+menyajikan detail 
+waktu dari berkas 
+meta (metadata) 
+foto guna 
+melontarkan 
+penanda indikator 
+anomali apabila 
+terjadi jurang 
+deviasi 
+ketidakcocokan 
+ekstrem 
+perbandingan 
+waktu pelaporan.
+Fungsional 
+Integritas Validasi 
+FR-ADM-07 
+Sistem 
+menyediakan 
+kapabilitas fitur 
+pembesaran piksel 
+mikro (zoom) foto 
+serta tautan keluar 
+interaktif merujuk 
+kepada platform 
+layanan panduan 
+pemetaan eksternal 
+rujukan.
+Fungsional 
+Antarmuka Validasi 
+FR-ADM-08
+Sistem mengubah 
+Fungsional
+Tabel UC6
+transisi deklarasi 
+state status ke fase 
+"Diterima", "Ditolak", 
+"Menunggu Revisi", 
+atau ke tahap 
+penerusan "Dalam 
+Peninjauan" dipicu 
+sentuhan panel aksi 
+Administrator.
+FR-ADM-10 
+Sistem 
+memancarkan 
+sinyal otomatis 
+instruksi perintah 
+menuju pangkalan 
+notifikasi API pada 
+tiap-tiap 
+perpindahan siklus 
+kedudukan status 
+pergerakan tiket 
+laporan warga.
+Fungsional 
+Layanan Notifikasi 
+FR-ADM-12 
+Sistem 
+menayangkan 
+jejeran deret daftar 
+potensi pelaporan 
+yang diidentifikasi 
+ganda secara 
+berdampingan 
+vertikal demi 
+fasilitasi 
+pembacaan 
+komparatif 
+Administrator 
+sebelum 
+pengambilan 
+ketetapan.
+Fungsional 
+UC8 
+Penggabungan 
+FR-ADM-13 
+Sistem memberikan 
+kewenangan pada 
+Administrator 
+memposisikan 
+hierarki seleksi satu 
+laporan sebagai 
+entitas Utama 
+(Parent Ticket) dan 
+menundukkan 
+laporan sekitarnya 
+sebagai anak tiket.
+Fungsional 
+UC8 
+Penggabungan 
+FR-ADM-14 
+Sistem menalikan 
+asosiasi relasional 
+antara anak dan 
+induk tiket secara 
+definitif, mengubah 
+identifikasi stempel 
+menjadi terpadu 
+"Tergabung", serta 
+melenyapkan anak 
+tiket dari tumpukan 
+antrean Dasbor 
+eksekusi utama.
+Fungsional 
+UC8, D2 Laporan 
+FR-ADM-15 
+Sistem tidak 
+memusnahkan 
+informasi data 
+riwayat turunan 
+(Child Ticket), 
+melainkan menjaga 
+preservasinya 
+dalam lemari 
+pengarsipan 
+database guna 
+keperluan hitungan 
+transparansi data 
+total pelapor publik.
+Fungsional 
+D2 Data Laporan 
+FR-ADM-16 
+Sistem mengebiri 
+otoritas 
+penggabungan 
+apabila mendeteksi 
+salah satu tiket 
+kandidat telah 
+mengalami 
+kemajuan fase 
+menyeberang 
+menuju disposisi 
+atau sudah 
+dibebankan ke 
+tangan pengerjaan 
+personel dinas.
+Fungsional 
+UC8 
+Penggabungan 
+FR-ADM-17 
+Sistem 
+mengakomodasi 
+fasilitas fitur 
+perusakan relasi 
+penggabungan 
+ganda (Unmerge) 
+bertitik awal aksi 
+pada entitas 
+Laporan Induk 
+Utama untuk 
+menanggulangi 
+cacat keputusan 
+pengelompokan 
+yang diderita 
+administrator.
+Fungsional 
+Manajemen Tiket 
+FR-ADM-18 
+Sistem memulihkan 
+seluruh hakikat 
+atribut Child Ticket 
+dan menginjeksikan 
+kembali entitas 
+yang sempat 
+disembunyikan 
+Fungsional 
+D2 Data Laporan 
+tersebut ke dalam 
+urutan tumpukan 
+Dasbor semula 
+secara rapi tiada 
+degradasi data.
+FR-RGN-01 
+Sistem mengurai 
+dan mendeteksi 
+klasifikasi nama 
+letak administratif 
+(kelurahan, 
+kecamatan) 
+memanfaatkan 
+terjemahan silang 
+titik lintang 
+geocoding dengan 
+basis data area dari 
+antarmuka Layanan 
+Lokasi.
+Fungsional 
+UC_GPS, Layanan 
+Peta 
+Tabel 4: Klaster Metrik Waktu SLA, Disposisi Delegasi, dan Eskalasi 
+Eksekusi 
+Rangkaian ini merekam pergerakan pelimpahan delegasi mandat antar instansi internal 
+birokrasi sembari menjaga keandalan kalibrasi metrik waktu Service Level Agreement, lengkap 
+dengan algoritma pengawasan eskalasi peringatan (warning escalation). 
+ID Kebutuhan 
+Deskripsi 
+Kebutuhan Mutlak 
+(Wajib)
+Kategori 
+Jejak Referensi 
+Asal (Traceability 
+Source)
+FR-DSP-01 
+Sistem merender 
+menu lungsuran 
+fungsionalitas 
+penyeleksian opsi 
+dinas tujuan 
+pendistribusian 
+Fungsional 
+Tabel UC7 
+laporan 
+berdasarkan 
+rujukan registrasi 
+daftar instansi 
+tervalidasi yang ada 
+di pangkalan 
+memori.
+FR-DSP-02 
+Sistem melakukan 
+penyaringan filter 
+daftar menu 
+lungsuran agar 
+pemunculan hanya 
+merestui opsi dinas 
+instansi yang hak 
+operasi 
+pelayanannya 
+menyelimuti 
+wilayah koordinat 
+insiden tersebut.
+Fungsional 
+Tabel UC7 
+FR-DSP-03 
+Sistem 
+membungkam 
+fungsi 
+pendistribusian 
+lintas birokrasi dan 
+hanya menyalakan 
+kunci hak akses 
+pemencetan 
+penyaluran 
+disposisi bagi 
+laporan tiket yang 
+mutlak menginjak 
+fase lulus 
+"Diterima".
+Fungsional 
+Tabel UC7 
+FR-DSP-04 
+Sistem 
+memberlakukan 
+Fungsional 
+Tabel UC7 
+pembacaan validasi 
+gerbang 
+pencegahan 
+kesalahan masukan 
+disertai ledakan 
+pesan notifikasi 
+ralat apabila 
+Administrator alpa 
+mengalokasikan 
+penetapan pada 
+dinas tujuan relevan 
+yang definitif.
+FR-DSP-05 
+Sistem menggeser 
+estafet data 
+laporan keluhan 
+publik secara kilat 
+lintas Dasbor 
+melalui perintah 
+disposisi penerusan 
+ke relung antrean 
+saku akun 
+manajemen instansi 
+sektoral terpilih.
+Fungsional 
+PSpec 3.0, Tabel 
+UC7 
+FR-DSP-06 
+Sistem mengubah 
+indikasi parameter 
+label status dari 
+"Diterima" melesat 
+menuju tahap 
+kedudukan "Dalam 
+Peninjauan" 
+otomatis menyusul 
+sentuhan 
+konfirmasi 
+Administrator 
+mentransmisikan 
+disposisi birokratis.
+Fungsional 
+D2 Laporan 
+FR-PRS-01 
+Sistem memisahkan 
+secara antarmuka 
+tab antrean mandiri 
+berisi khusus beban 
+Laporan Masuk 
+yang secara 
+eksklusif hak 
+bacanya 
+didelegasikan bagi 
+konsumsi akun 
+Administrator 
+perpanjangan pada 
+level masing-
+masing dinas tujuan 
+penugasan.
+Fungsional 
+PSpec 3.0, Tabel 
+UC9 
+FR-PRS-02 
+Sistem menyajikan 
+peta indeks grafis 
+keberadaan 
+rentang kesibukan 
+operasional 
+personel lapangan 
+untuk 
+membentengi 
+birokrasi dari 
+kejatuhan petaka 
+pendelegasian 
+tugas bertumpuk 
+ganda secara acak 
+(prevent 
+misallocation to 
+busy personnel).
+Fungsional 
+Tabel UC9 
+FR-PRS-03 
+Sistem 
+memuntahkan 
+serangkaian 
+peringatan pesan 
+rintangan 
+Fungsional 
+Tabel UC9 
+pemblokiran 
+seandainya sang 
+Administrator 
+ceroboh 
+mengalokasikan 
+penetapan mandat 
+tugas kepada figur 
+Penanggung Jawab 
+Lapangan yang 
+basis teritorial 
+yurisdiksinya 
+bersilangan terbalik 
+(tidak linear) 
+dengan zona 
+insiden kejadian 
+aslinya.
+FR-PRS-04 
+Sistem 
+mendegradasi 
+status "Dalam 
+Peninjauan" 
+mengubah 
+posisinya pada 
+basis data peladen 
+terpusat 
+menjadikannya 
+stempel absolut 
+"Ditugaskan" tepat 
+detik dimana 
+Administrator 
+memvalidasi 
+pengerahan turun 
+armada figur teknis 
+lapangan.
+Fungsional 
+D2 Laporan 
+FR-JDA-01 
+Sistem 
+menyediakan 
+mekanisme 
+intervensi fitur 
+Fungsional 
+Kendali SLA 
+pengaktifan 
+penghentian hitung 
+mundur waktu 
+operasional 
+sementara (Jeda 
+SLA) sebagai 
+kelengkapan 
+komando tangan 
+taktis yang 
+dipersenjatai bagi 
+figur Administrator 
+pada Dasbor 
+kendali pimpinan 
+dinas untuk 
+menyikapi interupsi 
+force majeure tak 
+terduga.
+FR-JDA-02 
+Sistem 
+mengamankan 
+fungsionalitas 
+manuver 
+pemanfaatan 
+pengaktifan mode 
+Jeda Waktu di balik 
+tembok syarat 
+kewajiban 
+penginputan narasi 
+keterangan 
+komprehensif 
+tertulis mengenai 
+alasan teknikal 
+rasionalis guna 
+pencatatan rekam 
+jejak valid logistik 
+perihal pemicuan 
+jeda waktu kerja.
+Fungsional 
+Kendali SLA 
+FR-JDA-03 
+Sistem 
+menjembatani 
+aktivasi Jeda Waktu 
+dengan 
+membekukan 
+putaran roda 
+persneling timer 
+algoritma sisa 
+Service Level 
+Agreement, 
+dibarengi tindakan 
+simultan 
+perombakan 
+penyelarasan status 
+pelaporan secara 
+menyeluruh ke 
+kedudukan label 
+global berbunyi 
+indikator "Tertunda" 
+agar tidak tercatat 
+mangkir tugas.
+Fungsional 
+D2 Laporan 
+FR-JDA-04 
+Sistem memasang 
+fungsionalitas 
+mode tombol 
+perintah pemicu 
+kebangkitan 
+kembali 
+penghitungan argo 
+SLA berjalan (fitur 
+Lanjutkan Waktu 
+Operasional) yang 
+dibatasi sangat 
+eksklusif hanya 
+dapat disorot 
+penampilannya saat 
+membuka laman 
+rincian pelaporan 
+bertuliskan cap 
+Fungsional 
+Kendali SLA 
+status "Tertunda".
+FR-JDA-05 
+Sistem 
+mengembalikan 
+nyawa denyut 
+detak hitungan sisa 
+kalkulator SLA dan 
+sekaligus otomatis 
+merubah seragam 
+label status statis 
+"Tertunda" ke 
+kedudukan gerak 
+aksi "Sedang 
+Berjalan" secara 
+real-time pada 
+papan Dasbor 
+instansi pimpinan 
+dan antarmuka 
+gawainya 
+masyarakat pasca 
+pelonggaran 
+persetujuan 
+administrator atas 
+kebangkitan 
+kembali mode 
+waktu tersebut.
+Fungsional 
+D2 Laporan 
+FR-ESK-01 
+Sistem membekali 
+sang Administrator 
+instrumen panel 
+layar monitor 
+pengawasan 
+Dasbor 
+pemantauan 
+agregat 
+menyeluruh 
+mengenai sisa 
+volume napas 
+hitungan argo 
+Fungsional 
+Dasbor Eskalasi 
+waktu 
+komputasional 
+(Dashboard 
+Pengawasan 
+Kalkulasi Sisa 
+Waktu) dari 
+himpunan sekujur 
+lautan beban kerja 
+operasional tiket 
+aktif harian guna 
+deteksi rintangan 
+telat respons sedini 
+mungkin.
+FR-ESK-02 
+Sistem 
+mengerahkan 
+kemampuan 
+algoritma 
+penangkap pemicu 
+(trigger detector) 
+yang otomatis 
+mendiagnosis 
+kemudian 
+membubuhkan 
+label penanda 
+pewarna merah 
+perubahan level 
+status darurat 
+menjadi "Terlambat" 
+pada tumpukan 
+tiket di pangkalan 
+database dalam 
+keadaan pasif kala 
+detak jam 
+menyentuh limit 
+silang lewatan 
+perhitungan kuota 
+SLA (waktu 
+kalender dikurangi 
+Fungsional 
+D2 Laporan 
+batas beban kerja 
+optimal).
+FR-ESK-03 
+Sistem menerapkan 
+hukuman 
+administrasi 
+intervensi paksa 
+peninjauan, 
+merantai sang 
+Administrator 
+masuk 
+menuntaskan 
+penyusunan alasan 
+laporan di dalam 
+format audit 
+kronologi berantai 
+manakala sistem 
+membunyikan 
+ledakan peringatan 
+bahwa sang tiket 
+telah melewati limit 
+SLA.
+Fungsional 
+D2 Laporan, Audit 
+FR-ESK-04 
+Sistem menyetop 
+kapabilitas 
+penyalahgunaan 
+dengan mematikan 
+sekaligus menyegel 
+kuncian absolut 
+pada opsi fitur 
+pemakaian rem 
+tuas darurat 
+permohonan tunda 
+Jeda waktu, 
+membekukan 
+pemakaiannya 
+secara statis pasca 
+tersiarnya 
+gelombang 
+Fungsional 
+Kendali SLA 
+informasi 
+pembaruan 
+konfirmasi aksi 
+pengerjaan 
+perbaikan status 
+lapangan ditandai 
+lunas "Selesai".
+Tabel 5: Klaster Pengerjaan Fisik, Sensor Geofencing, Navigasi Arah, 
+dan Pembuktian Berkas 
+Klaster kelima mewadahi pergerakan asinkron antar komponen perangkat lunak saat 
+mengoordinasikan manuver mobilitas petugas operasional dinas menembus lapangan demi 
+penyelesaian konstruksi. 
+ID Kebutuhan 
+Deskripsi 
+Kebutuhan Mutlak 
+(Wajib)
+Kategori 
+Jejak Referensi 
+Asal (Traceability 
+Source)
+FR-PTG-01 
+Sistem 
+mensintesiskan 
+perpaduan menu 
+"Check-In Harian" 
+(Absensi Masuk) 
+guna mendulang 
+rekaman waktu 
+permulaan masuk 
+jaga, pendaftaran 
+letak bujur sangkar 
+koordinat GPS, dan 
+deteksi metadata 
+jejak mesin gawai 
+figur Petugas yang 
+tengah bernaung 
+bertugas.
+Fungsional 
+D3 Penugasan 
+FR-PTG-02
+Sistem menerapkan 
+Fungsional
+Manajemen Sesi
+pemblokiran skrip 
+mematikan akses 
+gelombang 
+penerimaan beban 
+mandat instruksi 
+maupun penjalaran 
+dorongan dering 
+notifikasi 
+pendelegasian saku 
+tugas anyar selama 
+gerbang aktivasi 
+Check-In hari 
+berjalan masih 
+vakum atau lalai tak 
+terlaksana oleh 
+agen petugas 
+bersangkutan.
+FR-PTG-03 
+Sistem memberikan 
+fitur menu "Check-
+Out" bagi para agen 
+lapangan guna 
+mengeksekusi 
+rekaman log 
+pencatatan 
+kepulangan saat 
+jam kerja dinas 
+berbayar lunas 
+berakhir sesuai 
+putaran kalender.
+Fungsional 
+D3 Penugasan 
+FR-PTG-04 
+Sistem 
+membubuhkan pita 
+label deklarasi 
+keberadaan 
+rentang indikator 
+dinamis pada 
+bingkai antarmuka 
+profil figur 
+Fungsional 
+Tabel UC9 
+penanggung jawab 
+sesuai fase, serta 
+menginjeksikan 
+otomatis label 
+"Sedang Bertugas" 
+mendeteksi 
+pergantian tuas 
+saat mereka 
+merambah 
+penyelesaian di 
+lahan lokasi laporan 
+kejadian.
+FR-PTG-06 
+Sistem menabung 
+rekam simpan 
+gulungan lintasan 
+histori tapak bukti 
+absensi agen dan 
+memberlakukan 
+arsip presensi 
+sebagai riwayat 
+data silang 
+terekstrak 
+berjangka waktu di 
+balik server 
+relasional.
+Fungsional 
+Logika Absensi 
+FR-PTG-09 
+Sistem membangun 
+antarmuka 
+penampil To-Do 
+List yang dipecah 
+rute tabulasi 
+visualnya ke dalam 
+kantong spesifikasi 
+kompartemen 
+antrean prioritas 
+("Tugas Baru", ranah 
+"Sedang 
+Dikerjakan", dan 
+Fungsional 
+Tabel UC11 
+relung statis 
+"Tertunda").
+FR-PTG-11 
+Sistem melukis 
+pendaran warna 
+warni label 
+penegasan 
+kekritisan suhu 
+pada bingkai setiap 
+blok kartu saku 
+tugas pekerja di 
+lapangan: pendar 
+indikasi rona Merah 
+untuk limit krisis 
+gawat, pancaran 
+Kuning di zona 
+batas tepian sisa 
+limit SLA, dan kilap 
+cerah rona Hijau 
+atas kelahiran 
+distribusi tiket 
+perawan.
+Fungsional 
+Antarmuka Petugas 
+FR-PTG-12 
+Sistem melengkapi 
+senjata modul filter 
+pisau bedah 
+penelusuran kata 
+kunci pencarian 
+berlapis menyortir 
+tumpukan To-Do 
+List saku petugas 
+(membelah 
+taksonomi berdasar 
+identifikasi kode 
+unik ID Tiket, label 
+lokasi nama jalan, 
+wilayah sektor, 
+kualifikasi rumpun 
+jenis pelaporan 
+Fungsional 
+Antarmuka Petugas 
+kerusakan 
+infrastruktur, dan 
+suhu indikator level 
+tingkat urgensi 
+argo SLA).
+FR-PTG-15 
+Sistem memajang 
+perwujudan kanvas 
+detail taktis 
+orientasi pekerjaan 
+pengerahan rute ke 
+medan tempur 
+(halaman rincian 
+tiket bertugas 
+menampung 
+komparatif bukti 
+kerusakan awal 
+jepretan sang 
+warga sipil pelapor 
+orisinal, deskripsi, 
+simulasi lokasi 
+lintang gawai peta 
+interaktif, hitungan 
+argo visual tenggat 
+komputasi 
+mundur).
+Fungsional 
+Tabel UC11 
+FR-PTG-16 
+Sistem menautkan 
+gerbang jembatan 
+integrasi pintas 
+pembukaan menu 
+rute kompas 
+perantara Navigasi 
+menyeberang 
+aplikasi eksternal 
+pembimbing 
+geospasial resmi 
+pada gawai 
+petugas 
+Fungsional 
+Integrasi API 
+penanggung jawab 
+pemikul pengerjaan 
+instruksi tempur di 
+jalur transportasi 
+yang ruwet.
+FR-PTG-19 
+Sistem membanting 
+gembok 
+pencegahan di 
+barisan form 
+validasi verifikasi 
+menuntut 
+kecukupan 
+pemenuhan format 
+parameter 
+kerumitan susunan 
+penjelasan teks tata 
+letak narasi 
+tambahan pasca 
+pengerjaan 
+sebelum 
+membentangkan 
+perizinan 
+peluncuran 
+pembaruan injeksi 
+status resolusi 
+penyelesaian 
+masuk menembus 
+pintu tabel 
+pangkalan data 
+pusat peladen.
+Fungsional 
+Tabel UC12 
+FR-PTG-20 
+Sistem 
+mengeksploitasi 
+kepatuhan 
+keharusan absolut 
+pada agen figur 
+teknis agar 
+menuntaskan 
+Fungsional 
+Tabel UC12 
+penyerahan 
+unggahan bukti dua 
+sekat komparasi 
+foto pembanding 
+rona realitas visual 
+pratinjau kondisi 
+jalan "Sebelum" 
+pembongkaran 
+serta gambar 
+paripurna 
+"Sesudah" 
+pembangunan 
+tuntas dengan 
+ketetapan lolos 
+sensor pratinjau 
+ketajaman kualitas 
+peramban klien.
+FR-PTG-21 
+Sistem mensubsidi 
+penanaman 
+stempel otomatis 
+perusakan struktur 
+lapisan piksel 
+gambar dengan 
+algoritma 
+penggabungan tera 
+air tak terlihat 
+permanen 
+(Watermarking) 
+merekatkan 
+serangkaian kode 
+metadata berisikan 
+seri nomor 
+pelaporan ID unik 
+tiket warga asli, cap 
+rentang tangkapan 
+jarum jam, tanggal 
+presisi lintasan 
+server utama, 
+Fungsional 
+PSpec 4.0, Modul 
+Citra 
+digandeng akurasi 
+jejak langkah 
+koordinat 
+geospasial.
+FR-PTG-22 
+Sistem menyumbat 
+penyaluran pipa 
+saluran data di 
+batas ujung 
+menangkis 
+intervensi gawai 
+tatkala 
+terdegradasi 
+anomali ledakan 
+pesan eror merah 
+lantaran koneksi 
+unggahan terputus 
+parah sehingga 
+membentengi 
+transisi label status 
+ke pencapaian 
+puncak 
+kemenangan 
+resolusi stempel 
+lunas "Selesai" 
+memblokir keras 
+pengerjaan jika 
+kompresi paket 
+persinggahan 
+dokumentasi 
+pembuktian 
+material dinilai 
+kosong.
+Fungsional 
+Tabel UC12 
+FR-PTG-27 
+Sistem menata fitur 
+jalur darurat 
+permohonan 
+mediasi sengketa 
+birokrasi di medan
+Fungsional 
+Eskalasi Kendala 
+penanganan 
+lapangan berupa 
+panel tuas rem 
+pemicu sentuhan 
+"Ajukan Penundaan" 
+pengganti 
+wewenang mandiri 
+jeda status yang 
+memutus eksekusi 
+dan mencatat 
+pengisian wajib 
+kolom keluhan 
+anomali pengerjaan 
+memaksa 
+pelimpahan beban 
+tugas berstempel 
+tulisan merah 
+"Tertunda" berkibar 
+menyeberang layar 
+dasbor 
+administrator 
+pemangku kuasa 
+instansi tingkat 
+wilayah komando 
+pusat.
+FR-PTG-29 
+Sistem 
+melembagakan 
+sarana penangkal 
+rekayasa sipil 
+berupa fasilitas 
+pengerahan tuas 
+senjata balasan 
+pemicu pelaporan 
+sanggahan 
+perlawanan 
+sengketa (fitur 
+interaksi "Lapor 
+Balik") diiringi 
+Fungsional 
+Manajemen 
+Kendala 
+tuntutan mutlak 
+penyerahan bukti 
+fisik penganuliran 
+sebagai alat 
+tameng operasional 
+tatkala inspeksi 
+lapangan 
+mengungkap 
+keluhan warga 
+adalah rekayasa 
+pelaporan semu 
+nir-insiden fasum 
+publik.
+FR-PTG-30 
+Sistem 
+menyerahkan fitur 
+ekskalasi lonjakan 
+bantuan bala 
+serdadu susulan 
+lewat panel 
+pemancaran 
+"Eskalasi darurat" 
+manakala intervensi 
+di luar rencana kerja 
+proyeksi 
+membengkak 
+disertai alat 
+penunjang 
+pencatatan akurasi 
+rentang kejadian 
+durasi jam serta 
+penyalinan presisi 
+penempatan 
+koordinat sebaran 
+geografi.
+Fungsional 
+Eskalasi Kendala 
+FR-PTG-33 
+Sistem 
+mengekalkan 
+penyimpanan 
+Fungsional 
+Metrik Kinerja 
+pengarsipan data 
+berbingkai 
+pergerakan 
+historikal tuntasnya 
+eksekusi lunas 
+penugasan 
+lapangan berikut 
+rekaman rasio 
+statistik 
+kemenangan 
+performa 
+pencapaian 
+pemenuhan 
+rentang rasio 
+perhitungan 
+penyelesaian kuota 
+SLA mingguan 
+secara ringkas 
+dalam laman 
+rahasia bilik modul 
+khusus profil 
+riwayat prestasi 
+para agen operator 
+pengerjaan.
+Tabel 6: Klaster Konsensus Akhir, Siklus Penguncian Status, dan 
+Pemeliharaan Integritas Data Operasional 
+Ini adalah lapis pertahanan arsitektur di ranah Non-Fungsional dan akhir penyelesaian alur 
+Fungsional, yang menjaga akuntabilitas, resolusi konflik, batas latensi layanan, hingga 
+ketahanan eksekusi peladen menghadapi stres tes lingkungan. 
+ID Kebutuhan 
+Deskripsi 
+Kebutuhan Mutlak 
+(Wajib)
+Kategori 
+Jejak Referensi 
+Asal (Traceability 
+Source)
+FR-RSL-01 
+Sistem 
+memanipulasi pelat 
+Fungsional 
+PSpec 4.0 
+indikator 
+mengalihkan 
+deklarasi status 
+global seketika 
+melompat 
+merengkuh label 
+suspensi 
+"Menunggu Validasi 
+Warga" terpicu 
+komando sesaat 
+pasca pimpinan 
+regu agen 
+Penanggung Jawab 
+Lapangan 
+menyentuh 
+pematian 
+penguncian 
+pengerjaan 
+mengakhiri 
+konfirmasi 
+penutupan tugas 
+eksekusi di bilik 
+saku penyelesaian 
+dasbor 
+operasionalnya.
+FR-RSL-02 
+Sistem merender 
+peluncuran dua 
+tombol komando 
+alternatif (opsi 
+resolusi interaksi 
+"Terima" dukungan 
+konfirmasi 
+konsensus, atau 
+persimpangan 
+pilihan perselisihan 
+manuver resolusi 
+penolakan label 
+pemicu status 
+Fungsional 
+Tabel UC4 
+"Tolak") disajikan 
+berhadapan frontal 
+melayang pada 
+lapisan lembar kerja 
+antarmuka 
+deskriptif di depan 
+mata sipil apabila 
+tiket menginjak 
+masa transit 
+karantina batas 
+tunggu suspensi 
+antrean "Menunggu 
+Validasi".
+FR-RSL-03 
+Sistem membatasi 
+garis pertahanan 
+privasi secara 
+parsial, menahan 
+lalu lalang 
+pengguna dan 
+membekukan 
+penyediaan tuas 
+kapabilitas 
+persetujuan 
+penutupan absolut 
+maupun jalur 
+penolakan eksklusif 
+hanya dapat 
+dicerna pada ranah 
+peluncuran masuk 
+sesi login sang 
+empunya profil 
+akun warga pemilik 
+murni dari pencipta 
+perintis identifikasi 
+tiket bersangkutan.
+Fungsional 
+Tabel UC4 
+FR-RSL-04 
+Sistem 
+menyematkan 
+Fungsional 
+Tabel UC4 
+grafik timer 
+pengintai jam 
+hitung surut 
+berdetak progresif 
+pemicu ambang 
+maut limitasi durasi 
+penyelesaian 
+konfirmasi paksa 
+tenggat toleransi 
+panjang antrean 
+bergulir 3x24 
+putaran rotasi hari 
+masa operasional 
+kerja terikat 
+langsung di 
+punggung laman 
+keluhan tersebut.
+FR-RSL-05 
+Sistem 
+mendelegasikan 
+wewenang kuasa 
+robot otomasi 
+penjaga mesin 
+pencabut status 
+secara sepihak 
+untuk 
+mengeksekusi 
+peralihan keabadian 
+lunas pelaporan 
+mendarat ke 
+pelabuhan deklarasi 
+"Selesai Otomatis" 
+manakala timer 
+algoritma lonceng 
+toleransi hari kerja 
+hangus tersapu 
+habis tiada 
+pemenuhan 
+tanggapan gerak-
+Fungsional 
+D2 Laporan 
+gerik pemicu 
+konfirmasi dari 
+jemari gawai sang 
+penggugat warga 
+pelapor.
+FR-RSL-06 
+Sistem 
+mengeksekusi 
+perintah 
+restrukturisasi 
+stempel di 
+pangkalan pusat 
+beralih status 
+damai berbunyi 
+"Selesai" jika sang 
+pelapor 
+melancarkan 
+konfirmasi tanda 
+persetujuan 
+penerimaan, namun 
+mengarahkan 
+tembakan 
+pelabelan beralih ke 
+rute panas indikasi 
+komplain 
+bertuliskan 
+"Sengketa" apabila 
+Warga 
+menabrakkan 
+penolakan 
+konfirmasi 
+ketidakpuasan atas 
+hasil di arena 
+perbaikan 
+lapangan.
+Fungsional 
+Tabel UC4, UC5 
+FR-RSL-07 
+Sistem 
+menancapkan 
+benteng 
+Fungsional 
+Tabel UC4 
+pertahanan tembok 
+pasca-aksi 
+mengamputasi 
+paksa ketersediaan 
+fitur interaksi 
+perombakan 
+keputusan 
+(memblokir 
+fungsionalitas 
+penolakan dan 
+persetujuan) 
+melucuti hak 
+pemrosesan 
+lanjutan Warga 
+selamanya tepat 
+selepas figur 
+pengguna merilis 
+satu sentuhan 
+tombol responsif 
+konfirmasi satu kali 
+aksi final tunggal 
+absolut (one-time 
+logic trigger only).
+FR-RSL-08 
+Sistem 
+memberlakukan 
+pembekuan absolut 
+algoritma 
+perubahan 
+modifikasi 
+relasional 
+pembacaan 
+(penguncian 
+gerbang data 
+berlabel mode 
+ketat isolasi 
+transaksional read-
+only lock) di ranah 
+antarmuka maupun 
+Fungsional 
+D2 Laporan 
+level query server 
+pengubah untuk 
+rupa entitas tiket 
+pengaduan malang 
+yang sukses 
+mencapai rute 
+pamungkas 
+pemberhentian 
+terminal tujuan 
+status final buntu 
+abadi berstempel 
+tuntas ("Selesai" 
+mutlak persetujuan 
+maupun lunas 
+"Selesai Otomatis" 
+tergerus 
+kadaluwarsa 
+toleransi harian).
+FR-RSL-09 
+Sistem 
+memunculkan 
+lapisan gawang 
+jendela pop-up 
+perlawanan 
+menuntut pengisian 
+formulir sengketa 
+keluhan komplain 
+mewajibkan 
+pelapor 
+mengerahkan 
+pengunggahan foto 
+visum realitas 
+lapangan bukti 
+cacat penyelesaian 
+diiringi pelampiran 
+paksa susunan 
+naratif argumen 
+argumen keluhan 
+seketika apabila 
+Fungsional 
+Tabel UC5 
+tuas perselisihan 
+penolakan 
+pengerjaan diklik 
+berbalas.
+FR-RSL-10 
+Sistem 
+memberondong 
+blokade penjegalan 
+pendaftaran 
+penolakan 
+menggagalkan 
+transisi pengiriman 
+berkas di pipa 
+jaringan jika 
+pendeteksi 
+menemukan 
+gawang parameter 
+paksa terabaikan 
+(lampiran bobot 
+sisipan media foto 
+material komplain 
+absolut kosong 
+terpantau dalam 
+kompresi payload 
+sengketa jaringan).
+Fungsional 
+Tabel UC5 
+FR-RSL-11 
+Sistem 
+meluncurkan 
+lintasan distribusi 
+eskalasi data 
+komplain gawat 
+darurat yang 
+terpancang 
+stempel 
+berkedudukan 
+"Sengketa" 
+melemparkannya 
+masuk membelah 
+perlintasan pipa 
+Fungsional 
+PSpec 4.0 
+rute penyaluran 
+darurat menuju 
+meja terisolasi 
+antrean khusus 
+tumpukan prioritas 
+darurat mendiami 
+layar panggung 
+antarmuka panel 
+instrumen eksekutif 
+komando 
+kewilayahan 
+pimpinan Dasbor 
+kepemimpinan 
+birokrasi institusi 
+administrator 
+eksekutif penengah 
+perselisihan wilayah 
+operasional terkait 
+penanganan 
+perbaikan tinjauan.
+FR-RSL-12 
+Sistem 
+menyerahkan hak 
+prerogatif otoritas 
+palu hakim resolusi 
+perselisihan di saku 
+fungsionalitas 
+manuver intervensi 
+khusus untuk para 
+figur eksekutif 
+kepemimpinan 
+Administrator agar 
+diperkenankan 
+mendelegasikan 
+vonis perselisihan 
+hukuman 
+penggelindingan 
+perputaran rute 
+roda mesin 
+Fungsional 
+Tabel UC10 
+perbaikan 
+(penjatuhan 
+ketetapan 
+"Tugaskan Kembali" 
+kepada figur Agen 
+Penanggung Jawab 
+eksekutor teknis) 
+maupun 
+memenangkan 
+aparat pembelaan 
+diri (vonis menutup 
+perkara "Tutup 
+Laporan" 
+menyudahi 
+pertempuran 
+menancapkan 
+stempel final status 
+purna lunas).
+FR-RSL-13 
+Sistem 
+menanggulangi 
+manipulasi teror 
+spiral tak berujung 
+(infinite looping 
+paradox of citizen 
+vengeance limit 
+restriction policy) 
+menerapkan sensor 
+cegah 
+penyanderaan 
+menancapkan 
+batasan keras rasio 
+absolut pencabutan 
+jatah nyawa 
+pengajuan 
+komplain warga 
+yang dipatok ketat 
+sangat saklek 
+mengunci 
+Fungsional 
+Logika Sengketa 
+kesempatan 
+sebatas maksimal 
+hanya kuota sebutir 
+batas pengulangan 
+1 (satu) komplain 
+per siklus 
+pencatatan 
+pembelaan stempel 
+riwayat sang 
+identitas kode unit 
+ID pelaporan 
+rekapitulasi data 
+base terkait.
+FR-RSL-14 
+Sistem 
+mengarahkan 
+gelombang 
+transmisi rentetan 
+tembakan notifikasi 
+permintaan 
+pertanggungjawab
+an palu pemicu 
+konfirmasi resolusi 
+damai penerimaan 
+(Terima/Tolak 
+penuntasan) 
+melepaskan 
+serentak ledakan 
+sebaran paralel 
+jaringan merengkuh 
+membanjiri bilik 
+profil seluruh 
+komplotan agregasi 
+pelapor publik baik 
+pemicu entitas 
+orisinal pemegang 
+mandat anak 
+cabang Laporan 
+Turunan (Child 
+Fungsional 
+D2 Laporan, Logika 
+API 
+Ticket) beserta 
+penggagas utama 
+pelapor komando 
+Induk (Parent 
+Ticket) 
+menggebrak layar 
+beranda peramban 
+secara massal 
+sejenak saat 
+pengunggahan 
+visum pengerjaan di 
+lahan kejadian 
+diklaim selesai 
+ditekan tombol 
+penutupannya oleh 
+eksekutor 
+perwakilan sang 
+Agen Penanggung 
+Jawab operasional.
+FR-RSL-15 
+Sistem 
+memfasilitasi 
+algoritma 
+percabangan 
+penanganan 
+memecah belah 
+respons penarikan 
+umpan balik 
+persetujuan ganda 
+persimpangan 
+pemicuan hasil 
+kalkulasi konsensus 
+penerimaan, 
+pemblokiran 
+tolakan amarah 
+komplain, hingga 
+penganuliran limit 
+sisa saringan batas 
+toleransi kalibrasi 
+Fungsional 
+D2 Laporan 
+waktu otomatis 
+usang dari 
+sekumpulan 
+agregasi populasi 
+pemungutan 
+perlakuan resolusi 
+warga masing-
+masing entitas 
+dalam komplotan 
+simpul tali grup 
+laporan 
+penyilangan ganda 
+bersangkutan 
+menyelaraskan 
+eksekusinya secara 
+absolut terpisah 
+belahan 
+independen 
+menyerap otonomi 
+hitungan logik 
+individual 
+(independent 
+asynchronous 
+resolution response 
+recording 
+processor handler).
+FR-RSL-16 
+Sistem 
+mengeksekusi 
+pendeteksian 
+otomatis 
+pergantian 
+transmisi 
+mengkonversi pelat 
+stempel komando 
+entitas utama 
+Parent Ticket 
+menempatkannya 
+berlabuh pada 
+Fungsional 
+Logika Sengketa 
+batas teritori 
+pelabelan 
+penanganan 
+karantina panggung 
+sengketa "Dalam 
+Evaluasi Sengketa" 
+secara saklek 
+seketika usai mata 
+penjaga sirkuit 
+algoritma robot 
+pendeteksi 
+menangkap 
+sepercik insiden 
+pelaporan 
+pecahnya gejolak 
+ledakan kerusuhan 
+adanya satu saja 
+indikasi minor 
+perlawanan 
+minimum 
+perselisihan 
+penolakan amarah 
+ketidakpuasan 
+("Sengketa") yang 
+dimunculkan 
+perwakilan gerak 
+salah satu populasi 
+warga sipil pecah 
+menentang hasil 
+kerja keras tim regu 
+dinas dari 
+kerumunan seisi 
+komplotan klaster 
+rute gabungan 
+resolusi insiden.
+FR-RSL-17 
+Sistem menetapkan 
+rantai kuncian 
+stempel 
+Fungsional 
+Logika 
+Penggabungan 
+pengabadian 
+penetapan stempel 
+akhir pencatatan 
+abadi penarikan 
+entitas induk 
+gerbong utama 
+Parent Ticket 
+melabuhkan 
+perjalanannya 
+terparkir purna 
+menancap ke tiang 
+stasiun kedudukan 
+permanen damai 
+bertuliskan pelat 
+lunas mutlak usai 
+"Selesai" murni 
+dengan keabsahan 
+kehendak syarat 
+paksa di mana 
+barulah diaktifkan 
+absolut eksklusif 
+apabila keseluruhan 
+himpunan warga 
+penduduk yang 
+tercantum 
+identitasnya dalam 
+komplotan 
+kumpulan 
+gabungan rute 
+kelompok 
+tumpangan sirkuit 
+grup terkait mutlak 
+keseluruhan 
+populasi sudah 
+membukukan palu 
+ketukan konfirmasi 
+serentak 
+menyetujui ikhlas 
+penerimaan hasil 
+pelunasan 
+pekerjaan purna 
+atau telah lenyap 
+tergilas roda 
+algoritma melewati 
+jerat batas toleransi 
+waktu harian usang 
+kedaluwarsa 
+otomatis konsensus 
+terpadu.
+FR-RSL-18 
+Sistem 
+menembakkan 
+dering dentang 
+notifikasi transmisi 
+alarm getaran 
+pemicu 
+pemberitahuan 
+layar kaca 
+peringatan sistemik 
+peladen berdesing 
+masuk mendarat 
+pada bilik 
+peramban notifikasi 
+klien si penggagas 
+pelapor warga usai 
+roda nasib argo 
+waktu usang 
+perjalanan 
+pergerakan 
+laporannya kandas 
+menempuh 
+persinggahan 
+gerbang stempel 
+pencapaian status 
+lunas akhir 
+pembekuan mesin 
+purna mati batas 
+kedaluwarsa waktu 
+toleransi "Selesai 
+Fungsional 
+Layanan Notifikasi 
+Otomatis" eksekusi 
+peniadaan komplain 
+pengakhiran 
+interaksi absolut 
+sistem pusat.
+FR-RSL-19 
+Sistem 
+mengendalikan 
+corong transmisi 
+gema peluncuran 
+penyebarluasan 
+pelepasan paket 
+sinyal getaran 
+pesan otomatis 
+pesan notifikasi 
+dering rute 
+peringatan peranti 
+sistem membelah 
+bilik pengintaian 
+masuk ke profil rute 
+beranda pelapor 
+warga publik tatkala 
+gelaran komplain 
+palu persidangan 
+perselisihan 
+tuntutan resolusi 
+percekcokan 
+sengketa pelaporan 
+mereka resmi 
+diketuk diputuskan 
+eksekusi palu 
+pertimbangan 
+finalnya pasca 
+digodok matang 
+diangkat ke meja 
+pertimbangan 
+hakim komando 
+pengontrol institusi 
+sang dewan 
+Fungsional 
+Layanan Notifikasi 
+pertimbangan 
+aparat dewan 
+pimpinan 
+kewilayahan 
+birokrasi pengelola 
+Administrator.
+FR-RSL-20 
+Sistem meneruskan 
+penggelembungan 
+corong rilis denting 
+peredaran notifikasi 
+distribusi 
+pemberitahuan 
+interupsi layar 
+dasbor kerja 
+berbunyi 
+peringatan 
+mendesak ditujukan 
+tertembak eksklusif 
+ke wajah bilik 
+peladen aparat 
+penengah pimpinan 
+sang Administrator 
+komando tatkala 
+jala jaring 
+pengawasan 
+menjaring 
+mendapati insiden 
+lonjakan adanya 
+letupan keluhan 
+tiket pengaduan 
+malang yang 
+terdepak 
+terjerembab 
+mencelat jatuh 
+kembali ke gerbang 
+neraka penolakan 
+berstatus panas 
+"Sengketa".
+Fungsional 
+Layanan Notifikasi 
+FR-RSL-21 
+Sistem 
+mendelegasikan 
+wewenang 
+distribusi 
+penembakan alarm 
+pengingat 
+peringatan 
+dorongan tuas 
+denting lonceng 
+notifikasi 
+kewaspadaan 
+merangsek 
+menginterupsi layar 
+sentuh dering 
+pengawasan 
+memecah tab 
+antrean layar 
+monitor gawai 
+petugas figur 
+penanggung jawab 
+pengerjaan 
+operasional mandor 
+Lapangan takala 
+vonis meja 
+pengadilan 
+perselisihan 
+pimpinan komando 
+resolusi 
+Administrator 
+seketika 
+mendelegasikan 
+vonis sanksi 
+instruksi 
+perombakan 
+perbaikan memukul 
+palu ketetapan 
+mengembalikan 
+melimpahkan 
+pemutarbalikan 
+Fungsional 
+Layanan Notifikasi 
+rute penugasan 
+kembali roda beban 
+beban instruksi 
+tugas 
+penggulangan 
+pekerjaan yang 
+tengah diklaim 
+tersangkut panas di 
+dalam kubangan 
+arena jala lilitan 
+sengketa panas 
+penolakan publik 
+dibalikkan kembali 
+ke kantong ransel 
+tanggungannya.
+FR-RSL-22 
+Sistem 
+memformulasikan 
+pemanggilan 
+arsitektural 
+rendering sintesis 
+komponen 
+rekayasa 
+penyusunan 
+susunan balok 
+antarmuka tata 
+bahasa visual daftar 
+bongkahan tabel 
+garis kronologi 
+pergerakan rentang 
+gulungan paparan 
+kesejarahan 
+tumpukan riwayat 
+masa jejak rekam 
+rekapitulasi data 
+perjalanan rute 
+peninggalan 
+pergerakan 
+(timeline log histori) 
+Fungsional 
+D3 Riwayat 
+bersarang duduk 
+mengakar pada bilik 
+sekat lembaran 
+layar kaca halaman 
+kanvas eksplorasi 
+detail pelaporan 
+yang mana 
+mendedikasikan 
+porsi pajangannya 
+bertugas 
+memajangkan 
+pergerakan 
+loncatan 
+serangkaian insiden 
+modifikasi 
+pelompatan 
+pergeseran letak 
+lintasan status 
+mengalir linier 
+ditata berjejer rapi 
+berurutan searah 
+rotasi mesin detak 
+jarum jam putaran 
+historis 
+(chronological 
+stacking 
+representation 
+mapping log) 
+tersusun bertalian 
+komplit bersama 
+pelukisan stempel 
+ketepatan presisi 
+injeksi catatan 
+perempatan waktu 
+kejadian 
+eksekusinya serta 
+pajangan wajah 
+label 
+pengungkapan 
+stempel entitas 
+gelar kepangkatan 
+aktor eksekutor 
+penyulut apinya di 
+atas peramban 
+tatapan klien publik 
+yang tercantum.
+NFR-USA-02 
+Sistem 
+menampilkan 
+sorotan pijaran 
+warna pendar 
+pencahayaan label 
+kontras berdaya 
+pembedahan 
+pemisahan 
+intensitas 
+pewarnaan hierarki 
+pembedahan 
+pengelihatan 
+ekstrem (misalnya 
+semburat balutan 
+pewarnaan cat rona 
+Merah bara 
+peringatan maut 
+limitasi purna) 
+dicetak mendarat 
+disematkan 
+melekat terang 
+benderang 
+bertengger di 
+bentangan garis 
+cakrawala baris 
+tumpukan deret 
+antrean pelaporan 
+insiden yang tengah 
+terjebak tersandera 
+status telat tercekik 
+limit mangkir SLA 
+batas komando 
+Non-Fungsional 
+Antarmuka 
+Pengguna 
+"Terlambat" 
+didedikasikan 
+tujuannya sebagai 
+alat suar pengintai 
+anomali bahaya 
+limitasi pendar limit 
+rute pemrosesan 
+SLA birokrasi agar 
+sesegera mungkin 
+mampu diendus 
+pelacakan tatapan 
+indra pimpinan 
+komando mata 
+pergerakan 
+seketika sekejap 
+mata mampu 
+diringkus 
+diidentifikasi 
+kasatmata 
+gampang 
+tertangkap 
+pengelihatan radar 
+tanpa paksaan 
+penyiksaan 
+tuntutan 
+pelaksanaan 
+pengerahan gaya 
+pengerukan manual 
+di balik rimba mesin 
+kotak pencarian.
+NFR-REL-01 
+Sistem dirancang 
+dengan 
+pengokohan 
+fondasi struktur 
+arsitektur rute jala 
+pelestarian 
+jembatan penahan 
+rintangan 
+Non-Fungsional 
+Konektivitas Luring 
+hantaman 
+turbulensi cuaca 
+medan infrastruktur 
+guna perlawanan 
+gigih membela 
+daya tahan mesin 
+agar dituntut tetap 
+mampu mengunyah 
+paksa melahap 
+pergerakan 
+transmisi beban 
+pengiriman kargo 
+pasokan paket 
+muatan injeksi 
+bungkusan formulir 
+pendaftaran insiden 
+kendati pada 
+hakekat rute 
+perjalanan 
+komunikasinya 
+platform perangkat 
+lunak ini digulirkan 
+perputarannya 
+terdesak diakses 
+peluncurannya 
+dipaksa berjalan 
+menumpang meniti 
+kabel udara 
+melintasi 
+konektivitas 
+terowongan 
+transmisi jaringan 
+pipa pancaran 
+infrastruktur 
+frekuensi sinyal 
+seluler nirkabel 
+pedalaman yang 
+dipersenjatai daya 
+kemampuan pita 
+lebar berlambat 
+sangat lola berdaya 
+kompresi rute 
+latensi tingkat ping 
+raksasa 
+berfrekuensi kuno 
+(seperti 
+pelumpuhan limitasi 
+cekikan pada 
+arsitektur generasi 
+usang sirkuit modul 
+radio pemancar 
+menara 3G 
+sekalipun di era 
+modernisasi 
+jaringan).
+NFR-REL-02 
+Sistem 
+membentengi 
+keandalan daya 
+rekat stabilitas 
+benteng arsitektur 
+mempertahankan 
+memegang kukuh 
+keuletan 
+konsistensi pakem 
+akurasi penjaminan 
+mesin rute kalkulasi 
+jam detak 
+perputaran kalibrasi 
+argo penurunan 
+pergerakan rasio 
+pengikisan 
+penyusutan sisa 
+tenggat saldo 
+waktu kuota limitasi 
+tanggungan 
+komando beban 
+putaran metrik 
+pelaporan batas 
+Non-Fungsional 
+Manajemen Sesi 
+maut parameter 
+operasional SLA 
+diredam 
+pemrosesannya 
+bersarang 
+membumi di dalam 
+kedalaman fondasi 
+lapisan palung rute 
+pengamanan 
+bunker pelestarian 
+di struktur basis 
+data mesin pusat 
+kendali relasional 
+pergerakan 
+peladen ditaati 
+penjaminannya 
+berdiri tegar 
+bernaung berdiam 
+bersandar secara 
+wujud wutuh 
+persisten 
+berkelanjutan tak 
+lekang dilenyapkan 
+cuaca, 
+mengukuhkan 
+pelestarian napas 
+penahan gempuran 
+tangkuh kendati 
+seandainya di dunia 
+fana terjadi 
+hantaman 
+gangguan gejolak 
+turbulensi putus 
+sambungan rute 
+koneksi internet 
+patah sepihak 
+parah atau 
+ancaman tragedi 
+petaka rute 
+peninggalan 
+penyelesaian force 
+majeure bencana 
+terpelanting 
+penutupan paksa 
+mendadak 
+mematikan sirkuit 
+operasi sesi 
+relasional di aplikasi 
+pelabuhan gerbang 
+tatapan sang 
+peramban 
+antarmuka mesin 
+klien tatapan layar 
+gawai peraga 
+pengguna (browser 
+cache session 
+sudden closure 
+abruption 
+resistance) 
+mendarat lenyap 
+ditelan udara tanpa 
+aba-aba peringatan 
+pendaratan mulus 
+pelestarian pakem 
+pendaratan rute 
+eksekusi pamit 
+mendadak yang 
+mencederai 
+pemutusan relasi 
+penyandingan rute 
+eksekusi tiba-tiba 
+seketika dari sang 
+pemilik gawai.
+NFR-REL-03 
+Sistem menyalin 
+menjejak 
+pergerakan ketik 
+huruf menyedot 
+mencetak 
+Non-Fungsional 
+Sinkronisasi 
+Asinkron 
+bayangan 
+pelestarian 
+pelukisan data 
+muatan huruf rute 
+narasi jalinan 
+komando 
+pengetikan teks 
+rute komposit 
+pengerjaan di 
+medan bentangan 
+isian formulir yang 
+pergerakannya 
+tengah 
+mengambang 
+dieksekusi proses 
+rentetan 
+perakitannya pelan 
+perlahan dilahap 
+diisi oleh gerak 
+gerik jari klien 
+dimasukkan ke 
+dalam pundi pundi 
+ceruk simpanan 
+kantong perantara 
+lapisan 
+persinggahan daya 
+ruang rekat bunker 
+penyimpanan 
+memori pengingat 
+sirkuit peramban 
+memori rute proksi 
+lokalisasi letak 
+tumpuan tapakan 
+peramban alat 
+gawai pengguna 
+(browser isolated 
+local storage 
+staging cache 
+retention memory 
+bunker) dipaksakan 
+rekaman 
+penyalinannya 
+digulirkan direkam 
+otomatis 
+berkesinambungan 
+secara rentang 
+berkala periodik 
+perlahan tak henti 
+tiada henti, lalu 
+diwajibkan 
+menjunjung 
+pertanggungjawab
+an memfasilitasi 
+pelestarian 
+mumpuni 
+menyalakan 
+kecerdasan 
+bangkitan 
+kebangkitan 
+kembali mampu 
+melilit melanjutkan 
+pertalian eksekusi 
+pengerjaan 
+melontarkan 
+perpanjangan tali 
+rentetan pemuatan 
+laju 
+penyempurnaan 
+unggahan 
+berkesinambungan 
+transmisi berkas 
+muatan pendaratan 
+beban ke sarang 
+peladen tanpa 
+memaksa menodai 
+keikhlasan 
+pemaksaan kejam 
+tuntutan beban 
+menanggungkan 
+pengulangan rute 
+memahat memulai 
+kerajinan menulis 
+dari titik perawan 
+nol embrio awal 
+manakala 
+pendaratan sirkuit 
+sinyal perlintasan 
+urat nadi saluran 
+jaringan internet 
+berdetak pulih dari 
+pingsan bangkit 
+menjalin ikatan 
+koneksi jabat 
+tangan transmisi 
+data perlintasannya 
+kembali ke daratan 
+peradaban jaringan 
+konektivitas pulih 
+paripurna.
+NFR-REL-04 
+Sistem mendirikan 
+pagar perisai 
+arsitektur proteksi 
+penjagaan rute 
+mengimplementasi
+kan pengerahan 
+gembok benteng 
+mekanisme sirkuit 
+penguncian 
+penyanderaan 
+pembekuan rute 
+gerbang 
+fungsionalitas 
+pemblokiran isolasi 
+rute antarmuka 
+pertalian hak 
+pengerjaan 
+sementara waktu 
+(temporal database 
+Non-Fungsional 
+Transaksi Basis 
+Data 
+record locking 
+segregation 
+shielding 
+transaction module 
+architecture 
+execution barrier 
+lock mode isolator 
+engine) manakala 
+saat di perlintasan 
+persekian rute 
+putaran rentang 
+sepersekian detik 
+mendapati rute 
+pembacaan jala 
+pemantau melacak 
+eksistensi 
+pelacakan bahwa 
+penanganan entitas 
+sebuah tiket 
+laporan di sarang 
+meja operasi 
+tengah dieksekusi 
+rute pemrosesan 
+perombakan perut 
+rute relasional 
+status 
+pengerjaannya oleh 
+sesosok figur 
+otoritas intervensi 
+penanganan salah 
+seorang aktor 
+Administrator, 
+mendayagunakan 
+pembekuan 
+sehingga 
+mengakibatkan 
+blokade isolator 
+pelarangan paksa 
+segerombolan 
+rombongan 
+perwakilan aparat 
+sosok figur rute 
+intervensi 
+kewenangan para 
+anggota dewan 
+Administrator 
+komplotan rute 
+relasional lain di 
+perbatasan yang di 
+saat bersamaan 
+merapat hanya 
+berhak dilegalkan 
+memandanginya 
+tatapan memplototi 
+mengawasi 
+keberadaan wujud 
+rute insiden 
+pelaporan tersebut 
+semata terbatas 
+terpenjara 
+dikerangkeng di 
+dalam belenggu 
+sekat batas sangkar 
+pelabelan tatapan 
+dinding 
+pemantauan 
+fungsionalitas 
+mode lumpuh 
+hanya untuk 
+sekadar konsumsi 
+pembacaan tulisan 
+statis-saja (read-
+only restriction 
+barrier lock access 
+display observation 
+viewing constraint 
+restriction limitation 
+boundary 
+enforcement 
+execution).
+NFR-REL-05 
+Sistem 
+mendiktekan 
+pemrosesan 
+penerimaan 
+penyaluran 
+pemecahan 
+peleraian 
+perselisihan konflik 
+adu balap 
+menyerap 
+menenggak 
+pengakuan 
+penjalanan hanya 
+memproses 
+putaran memungut 
+penerimaan 
+mengakui 
+pencatatan absah 
+eksekusi 
+pengesahan 
+eksekusi rekaman 
+muatan 
+penyampaian 
+perintah sirkuit 
+intervensi 
+pergerakan 
+instruksi mutasi 
+tindakan aksi 
+perombakan 
+pengetukan palu 
+sang intervensi 
+komando gerak 
+pemicu aksi urutan 
+penyampaian 
+antrean 
+pendaftaran 
+putaran gerak 
+Non-Fungsional 
+Pemrosesan Konflik 
+komando masuk 
+langkah 
+persinggahan 
+perdana pertama 
+kesatu kalinya saja 
+yang pendaratan 
+rentetan 
+pendaratannya 
+lebih lincah 
+menginjak 
+pelabuhan rute 
+mendarat lebih 
+awal diserap 
+dikunyah direkam 
+diterima palu 
+pencatatannya sah 
+memijak 
+bersemayam oleh 
+mesin rute pintu 
+gerbang 
+penyambut urat 
+nadi peladen 
+pangkalan pusat 
+penerimaan 
+pangkalan peladen 
+sirkuit (berpacu 
+menimbang 
+membandingkan 
+berdasar komparasi 
+pendaratan lintasan 
+ukuran akurasi ukur 
+ketetapan catatan 
+cap tapak injakan 
+mesin rute cap 
+meteran batas 
+timestamp 
+persekian milidetik 
+yang terpahat di 
+dahi rekaman 
+kedatangan muatan 
+payload balap 
+peluncuran aksi 
+muatan sang 
+perintah pelopor 
+yang datang masuk 
+tersebut), 
+diberlakukan 
+pemberlakuannya 
+diaktifkan secara 
+paksa dihidupkan 
+apabila mendapati 
+perbenturan 
+gejolak rute 
+pecahnya letupan 
+jala bentrok 
+terdapat letupan 
+hantaman insiden 
+badai sirkuit konflik 
+penyilangan 
+antrean tumpukan 
+arus tumpang tindih 
+pendaratan 
+pergerakan 
+pengiriman kembar 
+identik transmisi 
+bongkahan kargo 
+letupan bungkusan 
+kumpulan muatan 
+perintah data 
+mutasi pembaruan 
+pendaratan 
+menyasar beramai 
+ramai secara 
+bersamaan lintasan 
+jam bebarengan 
+rentetan simultan 
+serempak pada 
+penjalanan lintasan 
+rute sirkuit 
+pembaruan data 
+insiden di sirkuit 
+menyasar ke titik 
+lokus entitas rute 
+satu lembar ID 
+penyusunan papan 
+penyasaran tiket 
+pembaruan 
+penjelmaan yang 
+menyasar ke rute 
+titik satu tiket 
+pelaporan sama 
+sejenis tersebut di 
+titik waktu 
+berhimpitan adu 
+saling silang 
+tabrakan mendarat 
+berebutan kursi 
+pengesahan.
+NFR-REL-06 
+Sistem 
+mengukuhkan 
+hukum rute 
+perundang-
+undangan 
+pelestarian 
+kesucian integritas 
+merakit dan 
+menerjemahkan 
+penerapan 
+pengerahan 
+pemberlakuan 
+penancapan pakem 
+algoritma tata cara 
+permesinan tatanan 
+hukum tata tertib 
+jembatan gembok 
+penyempurnaan 
+mekanisme rute 
+sirkuit gerbong 
+Non-Fungsional 
+Transaksi Basis 
+Data 
+sirkulasi tatanan 
+pergerakan roda 
+relasional di jala 
+rute mesin roda 
+transaksi basis data 
+(pemberlakuan 
+fundamental ikatan 
+rantai gembok 
+relational database 
+atomic execution 
+state handling 
+barrier bounds 
+block unit 
+constraint module 
+integration 
+execution 
+transaction 
+validation engine 
+logic isolator lock 
+state commit 
+architecture 
+operation 
+mechanism flow 
+controller 
+transaction 
+management 
+ruleset architecture 
+pattern constraint 
+policy execution 
+enforcement 
+regulation bound 
+procedure) untuk 
+memberikan 
+penjaminan garansi 
+kepastian perisai 
+pelestarian asuransi 
+garansi mutlak 
+kepastian 
+keamanan 
+mengawal 
+penjaminan guna 
+memastikan wujud 
+jelmaan pelestarian 
+utuh paripurna 
+lintasan seluruh 
+gelombang gelagat 
+eksekusi rute 
+pengiriman putaran 
+pendaratan gerak 
+pergerakan 
+pelompatan 
+pembaruan 
+perpindahan mutasi 
+loncatan 
+pergerakan 
+pertukaran stempel 
+rentetan mutasi 
+mutasi 
+penggeseran jejak 
+rute mutasi sirkulasi 
+ubah menyerap 
+status perubahan 
+sirkuit pelestarian 
+relasional 
+perubahan state 
+status kondisi iklim 
+cuaca kedudukan 
+pendaratan 
+pelestarian 
+relasional mutasi 
+sirkulasi pertukaran 
+pendaratan mesin 
+status pengukuhan 
+sistem mendarat 
+bersifat membumi 
+menganut prinsip 
+menaati hukum 
+ketat kepastian 
+tatanan ikatan 
+hukum ketunggalan 
+penyatuan 
+peleburan 
+ketegasan utuh 
+senyawa elemen 
+atomik murni 
+terintegrasi bulat 
+melingkar satu 
+kepastian paket 
+pelestarian bulat 
+melingkar mutlak 
+seutuhnya tanpa 
+kompromi mutilasi 
+mutilasi separuh 
+(menggenggam 
+mengamini 
+pengukuhan 
+penyerapan prinsip 
+eksekusi 
+pendaratan 
+penegasan bahwa 
+pengikatan 
+penyerapan rute 
+penegasan 
+penyimpanan di 
+meja relasional 
+mutlak harus wajib 
+berwujud paket 
+paket pengikatan 
+jaminan jalinan 
+tereksekusi tertelan 
+dimakan bersandar 
+terekam tersimpan 
+rute 
+penyimpanannya 
+pendaratannya rute 
+pendaratannya 
+secara bulat lunas 
+membumi ditelan 
+bulat melingkar 
+keseluruhan 
+seutuhnya secara 
+keseluruhan 
+gumpalan satu 
+kesatuan kumpulan 
+barisan kumpulan 
+barisan gelombang 
+transaksi mutlak 
+bulat utuh 
+tersimpan ke jeroan 
+server seluruh 
+bongkahannya atau 
+sebaliknya wajib 
+direm dilepeh 
+digugurkan dianulir 
+dimentahkan 
+dihancurkan 
+dibuang dilarang 
+pendaratannya 
+ditelannya dipaksa 
+mentah batal 
+digugurkan rute 
+relasional 
+pembalikannya 
+dibalikkan 
+digagalkan 
+dihancurkan 
+pendaratannya 
+diurungkan putaran 
+pengikatan 
+relasionalnya 
+dipulihkan 
+statusnya 
+ditangguhkan 
+ditiadakan 
+penjalanannya 
+dicabut paksa batal 
+pembalikannya 
+dianulir rute 
+relasional 
+transaksinya 
+dikembalikan ke 
+status pulih 
+dibatalkan eksekusi 
+lunas seutuhnya 
+tanpa memungut 
+ampas 
+pembalikannya 
+dipaksakan 
+pemulihannya 
+dikembalikan utuh 
+rute dianulir 
+dibatalkan 
+pembatalannya 
+keseluruhan 
+pendaratannya jika 
+di perjalanan 
+penarikan 
+putarannya terjadi 
+pemutusan badai 
+halangan rute 
+perjumpaan 
+musibah mendapati 
+pendaratan letupan 
+badai petaka 
+mendapati letupan 
+kegagalan pecah 
+putusnya 
+perputaran 
+interupsi sinyal 
+putus patah 
+putaran putus 
+gangguan 
+malapetaka 
+mendapati putaran 
+sambungan 
+mendapati 
+kecacatan 
+kegagalan badai 
+malapetaka 
+interupsi koneksi 
+cacat gagal letupan 
+pendaratan 
+kegagalan galat 
+pergerakan letupan 
+rute putaran insiden 
+malapetaka 
+kesalahan cacat 
+gagal letupan 
+interupsi letupan 
+pecahnya petaka 
+cacat perputaran 
+putus letupan 
+kegagalan 
+kegagalan galat 
+sistemik kegagalan 
+fatal).
+NFR-INT-01 
+Sistem 
+mematenkan 
+larangan ketat 
+penggunaan jam 
+peramban gawai 
+lokal milik pelapor, 
+dan menancapkan 
+keharusan mutlak 
+dalam memungut 
+stempel waktu 
+hanya berbasis 
+sinkronisasi mesin 
+Server-Side presisi 
+untuk merekam 
+kalkulasi rute metrik 
+SLA guna 
+mengekang 
+penipuan.
+Non-Fungsional 
+UC12, Integritas 
+Data 
+NFR-INT-02 
+Sistem menerapkan 
+pertahanan proaktif 
+menangkis insiden 
+Non-Fungsional 
+Proteksi Sistem 
+injeksi berkas jahat 
+dengan membatasi 
+ruang pintu masuk 
+penerimaan 
+muatan unggahan 
+peramban eksklusif 
+terikat rute 
+taksonomi resolusi 
+jenis kualifikasi file 
+berstandar (secara 
+spesifik hanya 
+menerima paket 
+ekstensi berekor 
+rute resolusi file 
+muatan JPG, 
+format tipe JPEG, 
+rute bingkai 
+susunan PNG) 
+dibarengi 
+pemberlakuan 
+pagar penertiban 
+batas cegatan 
+ambang limit 
+ukuran dimensi 
+maksimal skala 
+penyusutan berat 
+byte penyokong 
+muatan unggah di 
+atas pintu 
+pangkalan peladen 
+guna membentengi 
+rute pelestarian 
+fondasi pangkalan 
+sistem memblokir 
+meredam insiden 
+rembesan 
+penyamaran 
+penembusan injeksi 
+gerombolan barisan 
+berkas kode jahat 
+penumpang gelap 
+sisipan penyamaran 
+penipuan 
+malapetaka rute 
+malware perusak 
+pangkalan maupun 
+cegatan penangkal 
+pengikisan 
+pencekikan 
+pencegahan 
+pelumpuhan 
+tumpukan ledakan 
+penimbunan 
+pembengkakan 
+pemborosan kargo 
+kelebihan 
+meluapnya rute 
+membanjiri ruang 
+lumbung 
+tampungan beban 
+kuota gudang 
+pangkalan 
+penyimpanan 
+memori data 
+memori peladen 
+berlebih tumpah 
+menyusut yang 
+over limit beban 
+ruang berlebih 
+(storage overflow 
+denial limits load 
+storage exhaustion 
+prevention).
+NFR-INT-03 
+Sistem 
+mendiktekan rute 
+perlawanan 
+penjegalan ketat 
+rute pintu gerbang 
+Non-Fungsional 
+UC_GPS 
+perlindungan 
+penjagaan sistem 
+paksa mendepak 
+mentahkan 
+penolakan 
+peredaman 
+menjegal menolak 
+menganulir 
+menghentikan 
+paksa blokade 
+pengunci 
+pengguguran 
+penolakan proses 
+penyerapan 
+pengunyahan 
+masuknya rute 
+penjalanan 
+pembacaan 
+eksekusi 
+pendaratan injeksi 
+asupan bacaan 
+penerimaan 
+pengikatan 
+pendaftaran 
+asupan pemetaan 
+komando 
+penempatan 
+pendaratan 
+koordinat angka 
+stempel garis silang 
+astronomis titik 
+koordinat 
+pelaporan lintang 
+lokasi pelaporan 
+pendaratan posisi 
+bujur titik insiden 
+kerusakan terekam 
+di sistem apabila 
+mesin kalibrasi rute 
+pengukur 
+pendeteksi 
+menangkap indikasi 
+pelacakan kalkulasi 
+bahwa bentangan 
+tingkat level ukuran 
+deviasi simpangan 
+rute pendaratan 
+metrik rasio skala 
+kekuatan ukur 
+keandalan 
+pancaran sinyal 
+jangkauan 
+tangkapan derajat 
+batas ukur limitasi 
+akurasi sinyal rute 
+bacaan tangkapan 
+derajat nilai akurasi 
+dari pergerakan 
+tangkapan 
+pendaratan antena 
+pelacakan sensor 
+modul GPS pada 
+mesin piranti 
+perangkat gawai 
+milik pengguna 
+pelapor terpantau 
+pudar lemah 
+menduduki posisi di 
+bawah bayang-
+bayang ukuran 
+rendahan berada 
+terpuruk di bawah 
+lintasan dasar alas 
+lempeng ambang 
+pijakan batas lantai 
+tapakan rute tepian 
+batas ukur batas 
+minimal batas ukur 
+batas toleransi 
+kedisiplinan margin 
+ukuran toleransi 
+penjaminan sistem 
+penempatan titik 
+toleransi (secara 
+konkret spesifik 
+misalnya 
+ditekankan ditolak 
+ditendang 
+manakala kekuatan 
+deviasi sebaran 
+ukur rentang 
+penyimpangan titik 
+penyebaran akurasi 
+deviasi letak 
+menyebar melebar 
+membengkak 
+menembus nilai 
+letupan angka 
+margin di atas 
+batas renggang 
+melampaui bukaan 
+sudut simpangan 
+deviasi tebaran 
+bukaan > 20 meter 
+letak tebaran 
+deviasi pendaratan 
+simpangan lintasan 
+keraguan letak 
+jangkauan angka 
+deviasi titik 
+penyimpangan 
+deviasi lebih besar 
+bukaan dari 
+jangkauan > 20 
+meter angka 
+pelebaran tebaran 
+presisi).
+NFR-INT-04
+Sistem 
+Non-Fungsional
+Tabel UC11
+memberlakukan 
+pembuktian rute 
+penjaminan 
+kalibrasi pelestarian 
+pagar rute 
+penyaringan akurasi 
+keaslian kehadiran 
+presensi lapangan 
+mengunci proses 
+penyempurnaan 
+validasi ketepatan 
+verifikasi 
+penjaminan keaslian 
+kesesuaian posisi 
+silang tempat jejak 
+langkah kaki berdiri 
+penempatan lokasi 
+berdiri pijakan 
+pendaratan kaki 
+keberadaan rute 
+sang figur agen 
+perwakilan aparat 
+petugas sipil 
+Penanggung Jawab 
+eksekutor 
+operasional 
+Lapangan 
+menyandarkan 
+mekanisme 
+penjaminan mutlak 
+murni 
+mengeksploitasi 
+memberdayakan 
+metode kalibrasi 
+pengikatan rute 
+radar sirkuit 
+penyekatan ruang 
+batas geofencing 
+spasial pelacakan 
+radar sirkuit 
+pembatasan 
+pendaratan metode 
+komputasi pagar 
+spasial batas rute 
+penempatan ruang 
+spasial pengintaian 
+pendaratan metode 
+kalibrasi sirkuit 
+algoritma 
+Geofencing 
+pembatasan virtual 
+koordinat 
+pemagaran batas 
+spasial Geofencing 
+batas virtual teritori 
+pemetaan 
+koordinat rute 
+Geofencing, 
+sehingga mesin 
+akan menyandera 
+mengekang 
+menggembok 
+menangguhkan 
+menggugurkan 
+pemrosesan 
+gerbang resolusi 
+pendaratan 
+stempel 
+penyerapan transisi 
+status persetujuan 
+rute penuntasan 
+resolusi 
+penyelesaian 
+pengerjaan keluhan 
+perbaikan 
+penyelesaian lunas 
+sirkuit operasional 
+tugas resolusi 
+pengerjaan 
+operasional 
+perbaikan insiden 
+perbaikan 
+penyelesaian 
+pengerjaan 
+penguncian mutasi 
+resolusi status 
+penyelesaian 
+pengerjaan status 
+penutupan lunas 
+tuntas eksekusi 
+penyelesaian 
+operasi status 
+beban tugas 
+tanggungan saku 
+beban resolusi 
+penyelesaian 
+komando beban 
+kewajiban 
+tanggungan tugas 
+saku operasional 
+komando tersebut 
+mutlak 
+pengesahannya 
+rute proses 
+kelolosan sirkuit 
+perputaran 
+penjalanan 
+mutasinya 
+kelulusannya 
+pengesahannya 
+hanya dan mutlak 
+dilegalkan eksklusif 
+diloloskan 
+pendaratannya 
+ditelan dikunyah 
+dapat diraih 
+diproses diloloskan 
+diizinkan diproses 
+sah pengakuannya 
+dicatat lolos 
+diloloskan putaran 
+pengesahannya 
+dicatat jika dan 
+hanya 
+pendaratannya 
+hanya ketika mesin 
+algoritma 
+menangkap 
+pelacakan 
+mendeteksi secara 
+pasti pendaratan 
+bahwa figur sang 
+petugas pelaksana 
+rute pengerjaan 
+tersebut terpantau 
+eksistensi kalibrasi 
+keberadaannya 
+jejak berdirinya 
+jejak pendaratan 
+jejak kakinya 
+terdeteksi akurat 
+secara matematis 
+terbukti mendarat 
+menduduki 
+terpantau 
+menginjak di dalam 
+lingkar lingkaran 
+batas rute teritori 
+zonasi lingkar 
+pendaratan area 
+wilayah lingkar 
+batas jangkauan 
+pendaratan zona 
+teritorial di dalam 
+cincin pusaran 
+batas wilayah 
+kurungan cincin 
+radius pendaratan 
+batas area toleransi 
+sirkuit lingkar ukur 
+pagar rute radius 
+cincin jarak lingkar 
+radius lingkar 
+jangkauan 
+simpangan 
+renggang toleransi 
+toleransi 
+penyimpangan 
+bukaan batas 
+rentang rute lingkar 
+jarak radius 
+jangkauan 
+penyimpangan 
+toleransi ruang 
+batas simpangan 
+toleransi batasan 
+simpangan 
+toleransi kalibrasi 
+(batas spesifik 
+terpatri dipatok 
+secara eksplisit 
+contohnya pada 
+patokan ukuran 
+lingkar batas 
+pusaran jarak 
+kalibrasi letupan 
+jarak margin angka 
+ukuran renggang 
+jarak 50 meter) 
+ditarik ditarik ditarik 
+diukur rentangan 
+benang merah 
+ukurannya kalkulasi 
+titik temunya ditarik 
+dari ukuran titik 
+pusar pangkal letak 
+ukuran titik nol 
+komando koordinat 
+pusaran titik sentral 
+pangkal pangkal 
+pendaratan 
+komando titik dasar 
+lempeng koordinat 
+stempel titik 
+pelaporan letak 
+awal insiden 
+kerusakan 
+pengaduan pangkal 
+koordinat stempel 
+rute pusaran awal 
+muasal awal titik 
+koordinat 
+orisinalitas titik rute 
+lokus pusaran 
+sumber letupan 
+awal titik rute 
+koordinat 
+astronomis asal 
+usul stempel dasar 
+jejak titik lokasi 
+pangkal letupan 
+komando titik lokasi 
+penempatan 
+pangkal titik 
+kejadian awal 
+pelaporan titik 
+pendaratan rute 
+letak awal insiden 
+pelaporan 
+pengaduan titik 
+awal.
+NFR-INT-05 
+Sistem 
+menancapkan 
+pengerahan rute 
+persenjataan modul 
+kalibrasi pelindung 
+tembok 
+pengamanan 
+Non-Fungsional 
+Pembatasan 
+Kecepatan (Rate 
+limit) 
+arsitektur algoritma 
+sirkuit pematokan 
+penguncian 
+pemangkasan rem 
+paksa penahanan 
+ambang 
+pencekikan palang 
+pintu pengereman 
+gembok rute 
+pencekikan 
+perputaran limitasi 
+batas rute 
+pengereman 
+penyekatan 
+pembatasan 
+penjegalan ambang 
+batas pengereman 
+frekuensi sirkuit 
+putaran lalu lintas 
+rute penjegalan 
+membatasi rentang 
+bukaan ambang 
+maksimal rasio 
+pembatasan batas 
+tertinggi 
+pengereman batas 
+puncak limitasi atap 
+tertinggi 
+pengereman atas 
+jumlah rasio 
+kecepatan 
+pembatasan 
+gembok 
+pengereman batas 
+maksimal putaran 
+percepatan 
+frekuensi rute 
+putaran rentang 
+kecepatan gerak 
+intervensi sirkulasi 
+pemompaan 
+letupan putaran 
+batas atas 
+kecepatan 
+maksimal batasan 
+pengereman 
+intervensi ketukan 
+pendaratan 
+kecepatan laju rasio 
+letupan tembakan 
+frekuensi tertinggi 
+frekuensi batas 
+puncak batas atap 
+maksimal putaran 
+jumlah tertinggi 
+kecepatan 
+maksimal maksimal 
+frekuensi pukulan 
+frekuensi tertinggi 
+gembok frekuensi 
+maksimal batas 
+tertinggi maksimal 
+kecepatan 
+maksimal putaran 
+pengereman 
+pembatasan gerak 
+pematokan letupan 
+maksimal 
+(penerapan 
+fungsionalitas 
+modul permesinan 
+pelindung 
+pengereman mesin 
+pengereman 
+arsitektur laju 
+perlambatan 
+pengereman 
+arsitektur sistem 
+pencekikan 
+kecepatan 
+tembakan 
+pengiriman sistem 
+laju sirkuit 
+perlambatan sistem 
+pencekikan rasio 
+pembatasan 
+tembakan 
+pemompaan 
+penguncian 
+pengikatan 
+pengereman 
+pembatasan 
+pengereman 
+pengereman 
+kecepatan sistem 
+penjegalan 
+pencekikan 
+pencekikan 
+pencekikan rasio 
+pencekikan 
+kecepatan rasio 
+pembatasan 
+pencekikan 
+pembatasan 
+pencegat sistem 
+perlambatan 
+pembatasan 
+pembatasan 
+kecepatan 
+pemompaan rate-
+limit pencekikan 
+rate-limit 
+pematokan rasio 
+pemotongan 
+kecepatan) 
+dikhususkan disasar 
+dialamatkan 
+ditujukan 
+penjegalannya 
+untuk menangkal 
+menanggulangi 
+menghentikan 
+pengereman 
+intervensi 
+menargetkan 
+membendung 
+menahan meredam 
+menangkis 
+menghadang 
+memblokir 
+pengereman 
+pergerakan rute 
+pergerakan 
+pendaratan 
+gelombang 
+derasnya putaran 
+lintasan masuknya 
+rute badai serbuan 
+letupan peluncuran 
+pendaratan 
+peluncuran 
+pengiriman 
+peluncuran 
+masuknya rute 
+penjalanan lintasan 
+rute pengajuan 
+badai penjalanan 
+rute lintasan 
+penarikan letupan 
+pendaratan putaran 
+transmisi komando 
+putaran pendaratan 
+pengiriman 
+pengajuan 
+pengajuan 
+pendaftaran 
+letupan badai 
+serangan rute 
+transmisi pengajuan 
+rute intervensi 
+putaran rute 
+lintasan pendaratan 
+rute lintasan 
+intervensi 
+masuknya 
+peluncuran 
+transmisi 
+peluncuran rute 
+peluncuran 
+transmisi 
+permohonan 
+peluncuran 
+transmisi keluhan 
+pengajuan 
+pengerjaan putaran 
+rute lintasan revisi 
+rute komando 
+pembaruan 
+pelaporan rute 
+perombakan 
+pembaruan 
+pelaporan 
+intervensi sengketa 
+keluhan pengajuan 
+intervensi tuntutan 
+revisi pengerjaan 
+pembaruan revisi 
+revisi perbaikan 
+keluhan pelaporan 
+rute pembaruan 
+keluhan revisi revisi 
+pelaporan laporan 
+insiden keluhan 
+perbaikan revisi 
+revisi keluhan rute 
+pendaftaran 
+laporan pelaporan 
+dan serta merta 
+dan sekalian 
+membarengi 
+pemblokiran 
+pengikatan 
+bersama 
+perlambatan 
+pencekikan 
+pembatasan 
+pemompaan rute 
+peluncuran 
+transmisi 
+pergantian 
+perubahan mutasi 
+perpindahan 
+pergerakan putaran 
+intervensi mutasi 
+transmisi loncatan 
+perombakan 
+pengubahan 
+komando 
+pergerakan rute 
+pergerakan 
+pengiriman 
+perubahan 
+pertukaran 
+perubahan mutasi 
+sirkulasi mutasi 
+stempel 
+pergerakan rotasi 
+perubahan label 
+stempel pergantian 
+pengubahan status 
+sirkulasi pergerakan 
+resolusi status label 
+status stempel 
+operasional 
+pergerakan putaran 
+status operasional 
+label stempel 
+kegiatan stempel 
+pelabelan status 
+pekerjaan status 
+label stempel 
+pergerakan status 
+tugas resolusi label 
+operasional 
+stempel kegiatan 
+operasional gerak 
+petugas 
+operasional 
+penanganan aparat 
+petugas 
+operasional kerja 
+figur agen aparat 
+petugas lapangan 
+aparat petugas rute 
+pekerja agen 
+operasional 
+lapangan figur 
+aparat petugas 
+figur petugas 
+pergerakan agen 
+petugas pengerjaan 
+tugas lapangan 
+petugas eksekutor 
+aparat petugas 
+pengerjaan aparat 
+pengerjaan petugas 
+guna demi alasan 
+memburu 
+mencapai target 
+demi mencapai visi 
+untuk 
+mengantisipasi 
+guna kepentingan 
+rute demi 
+perlawanan alasan 
+guna kepentingan 
+perlawanan 
+menggapai tujuan 
+dalam rangka demi 
+melindungi demi 
+misi untuk 
+memerangi 
+perlawanan 
+mencegah 
+menghadang 
+membentengi 
+menangkis 
+menanggulangi 
+mengamankan 
+membentengi 
+sistem meredam 
+mencegah 
+memblokir 
+perlawanan 
+menghalau 
+menghadang 
+meredam 
+mencegah 
+memblokir rute 
+menangkal 
+meredam 
+memblokir 
+meredam insiden 
+ancaman 
+mencegah 
+mencegah 
+pergerakan 
+pencegahan 
+menangkis 
+pergerakan letupan 
+aktivitas kegiatan 
+perilaku anomali 
+manuver manuver 
+operasi gerak gerik 
+pergerakan 
+kegiatan anomali 
+pergerakan perilaku 
+tindakan 
+pergerakan gerak 
+gerik manuver 
+intervensi kegiatan 
+manuver 
+pergerakan 
+aktivitas perilaku 
+pergerakan aksi 
+letupan kegiatan 
+aktivitas manuver 
+tindakan aktivitas 
+aktivitas anomali 
+kejahatan 
+perbuatan aktivitas 
+gerak kecurangan 
+aktivitas rekayasa 
+letupan ancaman 
+rekayasa penipuan 
+pengelabuan akal 
+akalan anomali 
+manipulasi 
+kecurangan 
+manuver penipuan 
+letupan penipuan 
+pengelabuan 
+manipulasi 
+intervensi 
+manipulasi rekayasa 
+kejahatan 
+manipulasi 
+ancaman 
+kecurangan 
+manipulasi 
+eksploitasi 
+perusakan sistem 
+mesin perusakan 
+sistem pangkalan 
+mesin arsitektur 
+pangkalan mesin 
+rute perusakan 
+tatanan sistem 
+mesin tatanan 
+ekosistem peladen 
+sistem ekosistem 
+peranti sistem 
+pangkalan aplikasi 
+rute arsitektur 
+aplikasi (serangan 
+serbuan 
+pengerukan 
+serbuan badai 
+gempuran 
+pengiriman muatan 
+sampah serbuan 
+tembakan 
+hantaman badai 
+hantaman serbuan 
+letupan tembakan 
+berantai 
+penyusupan 
+tembakan letupan 
+badai serangan 
+muatan rekayasa 
+pengiriman spam 
+pengerukan spam 
+penyampahan rute 
+pembombardiran 
+rentetan 
+pengiriman sampah 
+tembakan spam 
+penyampahan data 
+pengiriman spam 
+pengiriman 
+tembakan 
+spamming 
+penyampahan rute 
+spam tembakan 
+spam spam sampah 
+pengiriman bertubi 
+spamming bertubi 
+tubi).
+NFR-MNT-01 
+Sistem 
+merumuskan 
+dikonstruksi 
+perakitan dirakit 
+ditenun 
+dikembangkan 
+dibesarkan diramu 
+digodok 
+pengerjaannya 
+dikonstruksi 
+dirancang dibangun 
+dirangkai dirancang 
+penenunannya 
+dengan mengamini 
+mengeksploitasi 
+menyandarkan 
+menempuh 
+mengambil rute 
+mengadopsi 
+menganut rute 
+berpegangan 
+mengeksekusi 
+penjalanan 
+pendekatan 
+memedomani 
+merangkul 
+arsitektur 
+memaksakan 
+merangkul 
+mengambil jalur 
+menjunjung 
+penataan 
+pendekatan rute 
+merumuskan pola 
+pendekatan 
+menyandarkan 
+mengadopsi 
+tatanan 
+merumuskan 
+Non-Fungsional 
+Arsitektur Basis 
+Kode 
+pemisahan 
+penceraian 
+pengeratan 
+pemotongan 
+pembelahan 
+pemisahan 
+pembelahan 
+mengisolasi 
+pemotongan 
+penyekatan 
+merumuskan isolasi 
+membelah 
+pemisahan sekat 
+sekat isolasi 
+penceraian 
+pemisahan isolasi 
+pemisahan secara 
+arsitektural secara 
+murni radikal secara 
+mutlak pemisahan 
+memutus 
+pemisahan tegas 
+pemisahan tebal 
+pemisahan tegas 
+tebal pemotongan 
+pemisahan terpisah 
+menyekat sekat 
+sekat tegas 
+terpisah pemisahan 
+tegas radikal tajam 
+memisahkan 
+struktural 
+merumuskan 
+batasan struktural 
+tembok struktural 
+kerangka tatanan 
+menyekat tembok 
+arsitektur struktur 
+bangunan struktur 
+rangka perakitan 
+struktur susunan 
+antarmuka tatanan 
+perwajahan rangka 
+tatanan kerangka 
+kerangka muka 
+antarmuka desain 
+kerangka 
+perwajahan 
+kerangka muka 
+struktur rangka 
+kerangka jembatan 
+tatanan antarmuka 
+fasad antarmuka 
+desain fasad 
+tatapan desain 
+perwajahan tatanan 
+kerangka fasad 
+antarmuka muka 
+antarmuka layar 
+pengguna sirkuit 
+tatapan pengguna 
+klien layar visual 
+pengguna rute 
+muka desain klien 
+pengguna pemakai 
+pengguna 
+pemandangan rute 
+klien pengguna 
+peraga tatapan 
+(rute mesin depan 
+fasad layar 
+perwajahan ranah 
+mesin penampil 
+tatapan visual ranah 
+fasad depan muka 
+panggung muka 
+peraga sisi 
+penampil depan 
+fasad penampil 
+layar klien front-
+end rute arsitektur 
+front-end fasad 
+depan front-end 
+peraga antarmuka 
+front-end rute 
+tampilan front-end) 
+dan serta digergaji 
+dan dipisahkan dari 
+diiringi dengan rute 
+pembelahan 
+diputuskan rantai 
+campur aduknya 
+dan dipecah belah 
+dengan dan 
+dipotong 
+dipisahkan dari dan 
+dipecah belah dari 
+dan dipisahkan dari 
+dan dengan sirkuit 
+dan serta 
+digandeng 
+dipisahkan 
+pengerjaannya 
+terpisah dari 
+kerangka dari 
+pemikiran dari 
+ranah dari 
+pemrosesan logika 
+algoritma sirkuit 
+sirkuit tatanan rute 
+kerangka pemikiran 
+mesin pencerna 
+permesinan sirkuit 
+urat pemikiran 
+sirkuit logika akal 
+permesinan mesin 
+kerangka sirkuit 
+akal urat algoritma 
+mesin logika 
+pemikiran proses 
+sirkuit kerangka 
+proses mesin 
+algoritma pemikiran 
+pemrosesan 
+pencernaan 
+pemrosesan 
+permesinan 
+pemrosesan 
+pencernaan 
+pengunyahan 
+pemrosesan 
+pengelolaan 
+permesinan logika 
+pencernaan 
+pengunyahan 
+pengolahan 
+pengerjaan 
+pemrosesan 
+pengolahan 
+komputasi data 
+rute pencernaan 
+sirkuit data 
+pangkalan tatanan 
+pengolahan asupan 
+data (sirkuit jeroan 
+mesin permesinan 
+rute ranah sirkuit 
+mesin penjalanan 
+jeroan urat logika 
+punggung ranah 
+peladen pangkalan 
+rute sisi panggung 
+belakang ranah 
+permesinan 
+punggung rute 
+komputasi 
+panggung belakang 
+pangkalan urat 
+mesin belakang 
+arsitektur belakang 
+peladen mesin 
+punggung ranah 
+back-end jeroan 
+punggung back-
+end arsitektur 
+permesinan jeroan 
+back-end peladen 
+urat back-end rute 
+komputasi 
+punggung back-
+end) agar untuk 
+guna dengan alasan 
+demi kepentingan 
+demi niat demi 
+merengkuh demi 
+menyasar demi 
+menargetkan 
+kemudahan 
+fasilitasi 
+memuluskan guna 
+menyokong 
+kemudahan untuk 
+memberi ruang 
+dalam rangka demi 
+kepentingan untuk 
+memudahkan 
+memuluskan 
+meringankan 
+kemudahan 
+mempermudah 
+memuluskan 
+melonggarkan 
+meratakan jalan 
+memudahkan 
+mempermudah 
+pelacakan 
+perburuan 
+penelusuran 
+pelacakan 
+pemantauan 
+pelacakan 
+pencarian 
+penyisiran 
+pengintaian 
+pendeteksian 
+pengusutan 
+pembedahan 
+pelacakan 
+pencarian 
+pengusutan 
+perburuan 
+penelusuran 
+perburuan 
+pelacakan jejak rute 
+pengusutan 
+kesalahan 
+kecacatan penyakit 
+letupan kesalahan 
+kegagalan letupan 
+cacat galat 
+kecacatan 
+kerusakan kutu 
+galat penyakit 
+kesalahan 
+malapetaka 
+kecacatan galat 
+rute anomali galat 
+penyakit letupan 
+rute galat penyakit 
+cacat galat (sirkuit 
+pembersihan bedah 
+penyakit perbaikan 
+rute 
+pemberantasan 
+kutu operasi 
+pengobatan 
+penelusuran bedah 
+cacat perburuan 
+penyakit 
+penelusuran bedah 
+perburuan kutu 
+perburuan operasi 
+penanganan 
+debugging sirkuit 
+pemusnahan kutu 
+proses perbaikan 
+bedah penanganan 
+perbaikan 
+pengobatan galat 
+debugging rute 
+penelusuran kutu 
+bedah perbaikan 
+cacat debugging 
+rute pembersihan 
+galat debugging 
+rute perbaikan kutu 
+debugging 
+perburuan penyakit 
+debugging) dan 
+serta diiringi 
+beriringan dan guna 
+kepentingan 
+menyokong 
+pemeliharaan dan 
+pengawalan serta 
+pemeliharaan 
+perawatan 
+pemeliharaan 
+pengasuhan 
+pengawalan 
+peremajaan 
+pengawalan 
+pemeliharaan 
+penjagaan 
+penyesuaian 
+pemeliharaan 
+peremajaan 
+perawatan 
+pemeliharaan 
+penyegaran rutin 
+peremajaan berkala 
+penyesuaian 
+pengawasan 
+reguler perawatan 
+berkesinambungan 
+berkala 
+pemeliharaan 
+terprogram rutin 
+pemeliharaan 
+pengawalan 
+berkesinambungan 
+berkala rutin 
+pengawalan harian 
+rutin.
+NFR-MNT-02 
+Kode sumber 
+(source code) 
+perangkat lunak 
+AKAN disusun 
+menggunakan 
+standar penulisan 
+kode yang bersih 
+dan terstruktur 
+(clean code) agar 
+mudah dibaca dan 
+dikembangkan 
+kembali di masa 
+mendatang.
+Non-Fungsional 
+Basis Kode 
+NFR-MNT-03 
+Perangkat lunak 
+AKAN beroperasi 
+penuh sebagai 
+layanan berbasis 
+web, sehingga 
+dapat diakses 
+langsung melalui 
+perangkat 
+komputasi desktop 
+maupun seluler 
+Non-Fungsional 
+Infrastruktur 
+Perangkat 
+tanpa mewajibkan 
+pengguna 
+memasang aplikasi 
+tambahan.
+NFR-MNT-04 
+Perangkat lunak 
+AKAN berfungsi 
+secara kompatibel 
+pada berbagai 
+peramban web 
+modern yang 
+mendukung 
+standar teknologi 
+web terbuka (open 
+web standards), 
+terlepas dari jenis 
+sistem operasi 
+perangkat klien.
+Non-Fungsional 
+Arsitektur 
+NFR-AUD-01 
+Perangkat lunak 
+AKAN merekam 
+seluruh intervensi 
+kritis (seperti 
+persetujuan, 
+penolakan, jeda 
+waktu, eskalasi, 
+disposisi) ke dalam 
+audit log sistem 
+yang bersifat 
+permanen 
+(immutable) dan 
+tidak dapat 
+dimodifikasi oleh 
+entitas apa pun.
+Non-Fungsional 
+Manajemen Audit 
+NFR-AUD-02 
+Perangkat lunak 
+AKAN mencatat 
+atribut data secara 
+Non-Fungsional 
+Manajemen Audit 
+komprehensif pada 
+setiap entri audit 
+log, meliputi 
+identitas aktor, 
+waktu presisi 
+(timestamp), jenis 
+aksi yang dilakukan, 
+dan data 
+perangkat.
+NFR-AUD-03 
+Perangkat lunak 
+AKAN mencatat 
+setiap kejadian 
+galat, kegagalan 
+sistem kritis, dan 
+kegagalan 
+sinkronisasi data 
+(offline-to-online) 
+ke dalam log sistem 
+kesalahan (error 
+log) untuk 
+keperluan 
+penelusuran teknis 
+(debugging).
+Non-Fungsional 
+Rekaman Kesalahan 
+NFR-LEG-01 
+Perangkat lunak 
+AKAN mematuhi 
+prinsip 
+Perlindungan Data 
+Pribadi dengan 
+menerapkan 
+penyensoran 
+otomatis terhadap 
+data identitas 
+sensitif Warga pada 
+antarmuka publik.
+Non-Fungsional 
+Regulasi Hukum 
+NFR-LEG-02
+Perangkat lunak 
+Non-Fungsional
+Resolusi
+AKAN tunduk pada 
+regulasi 
+transparansi 
+informasi publik 
+dengan 
+memastikan Warga 
+pelapor selalu 
+mendapatkan akses 
+untuk melacak 
+status akhir 
+laporannya tanpa 
+halangan.
+NFR-LEG-03 
+Perangkat lunak 
+AKAN 
+mengimplementasi
+kan standar 
+Kesepakatan 
+Tingkat Layanan 
+(SLA) sesuai 
+pedoman 
+pelayanan publik, 
+dengan fasilitas 
+peringatan 
+keterlambatan 
+(eskalasi) yang 
+terotomasi.
+Non-Fungsional 
+SLA Pengawasan 
+Sebagai catatan verifikasi teknis arsitektur: RTM secara mutlak tidak memasukkan spesifikasi 
+pendaftaran instansi eksternal secara mandiri karena berbenturan dengan hierarki komando. 
+Seluruh pencapaian pemenuhan kewajiban (mandatory fulfillment) memetakan kebutuhan 
+integrasi RDBMS, transmisi berprotokol HTTPS, sintaks balasan JSON, otentikasi biometrik 
+bawaan gawai untuk persetujuan (opsional), serta validasi token sesi secara terpusat dari 
+server peladen backend. 
+Sintesis Arsitektural dan Signifikansi Implementasi 
+Tebalnya kompartemen pelestarian data dan pembatasan isolasi lintas wewenang dalam 
+Matriks Keterlacakan (RTM) tersebut menegaskan bahwa platform Sistem AduAja V1.0 diinisiasi 
+bukan sebatas gerbang fasilitasi entri pencatatan (data entry portal), melainkan menjelma 
+sebagai instrumen mesin penggilas penundaan birokrasi pemerintahan daerah. Keputusan 
+menanamkan algoritma penguncian manipulasi modifikasi status (record locking constraint 
+restriction), peletakan tumpuan perhitungan komputasi logika secara mutlak di jantung sirkuit 
+unit peladen terpusat (server-side synchronous transaction computation module logic), serta 
+pendayagunaan mekanisme penganuliran sistematis yang menghukum ketidakakuratan 
+jangkauan simpangan sinyal bujur koordinat geospasial menandai level kedewasaan 
+arsitektural proyek perangkat lunak ini.1 
+Satu hal yang menonjol dari sintesis matriks ISO/IEC/IEEE 29148:2018 di atas adalah sentralitas 
+peran penyelarasan waktu dan kalkulasi geospasial yang dieksekusi menggunakan modul 
+antrean pekerja asinkron (background asynchronous queuing workers).1 Mengingat eksekusi 
+beban hukuman keterlambatan limitasi batas waktu (Service Level Agreement) ditegakkan 
+lewat rantai komputasi penilaian agregat kumulatif bertingkat pada entitas hierarki Laporan 
+Utama (Parent Ticket), ancaman kegagalan kompetisi jalur mesin komputasi peladen yang 
+tertahan saat meladeni perebutan sinkronisasi bersamaan (concurrency racing limit handling 
+breakdown deadlock constraint condition bottleneck) lantaran absennya optimalisasi rancang 
+bangun pembacaan dan penulisan transaksi berantai (read-write transactional chain 
+optimization procedure execution mechanism structure implementation methodology process 
+execution) pada bongkahan arsitektur basis data, niscaya akan menjadi faktor krusial yang 
+mengubur pencapaian eksekusi putaran laju alur resolusi transisi mutasi pelabelan stempel 
+status birokrasi perizinan dokumen sistem secara masif.1 
+Implementasi yang gigih, taat asas, tanpa kompromi, dan berpijak pada landasan presisi 
+matematis atas pengeksekusian pedoman spesifikasi-spesifikasi fundamental bersyarat paksa 
+"Wajib" (SHALL) yang berbaris rapi mengisi struktur relung-relung matriks dalam laporan 
+eksklusif ini diyakini sepenuhnya akan mengkristalkan lahirnya sebuah fondasi pangkalan 
+arsitektur perangkat lunak penyokong pelayanan aparatur publik yang perkasa tangguh. 
+Infrastruktur ini tidak hanya akan menjanjikan daya tahan perlawanan menghadapi amukan 
+badai gelombang gempuran stres tes peningkatan lonjakan pelipatgandaan ledakan eskalasi 
+lalu lintas mobilitas volume lalu lintas penyusupan kerumunan gerombolan serbuan ribuan 
+pengunjung warga pengguna (high load massive user request scalability concurrent attack 
+simulation resilience limits tolerance endurance bounds traffic volume constraints bounds 
+limits), melainkan juga mensterilkan wajah birokrasi pelayanan publik dari jerat anomali 
+manipulasi data kronologis yang kerap memicu kebuntuan. Pembangunan yang tegak lurus 
+pada pakem RTM ini kelak akan menempatkan platform AduAja sebagai prototipe tata kelola 
+infrastruktur perkotaan berstandar intelijen (smart governance benchmark). 
+Karya yang dikutip 
+1. SRS Sistem AduAja V1.0 - Kelompok PLR.pdf 
+2. Improving Clarity in Software Requirements Engineering Through ISO and 
+Template Alignment | by Oleh Dubetcky, diakses Juni 9, 2026, https://oleg-
+dubetcky.medium.com/improving-clarity-in-software-requirements-
+engineering-through-iso-and-template-alignment-5e96daebdcd7 
+3. Requirements Traceability Matrix (RTM) for Systems Engineers | ReqView Blog, 
+diakses Juni 9, 2026, https://www.reqview.com/blog/requirements-traceability-
+matrix/ 
+4. What is a Requirements Traceability Matrix (RTM)? - Jama Software, diakses Juni 
+9, 2026, https://www.jamasoftware.com/requirements-management-
+guide/requirements-traceability/traceability-matrix/ 
+5. Example Software Requirements Specification (SRS) | ReqView Documentation, 
+diakses Juni 9, 2026, https://www.reqview.com/doc/iso-iec-ieee-29148-srs-
+example/ 
+6. Requirements Traceability Matrix (RTM) Jira Guide | BesTest, diakses Juni 9, 2026, 
+https://getbestest.com/blog/requirements-traceability-matrix-guide/ 
+7. IEEE Recommended Practice for Software Requirements Specifications - 
+Computer Science and Engineering, diakses Juni 9, 2026, 
+https://www.cse.msu.edu/~cse870/IEEEXplore-SRS-template.pdf 
+8. IEEE recommended practice for software requirements specifications - IEEE Std 
+830-1993, diakses Juni 9, 2026, https://www.utdallas.edu/~chung/RE/IEEE830-
+1993.pdf 
+9. ISO/IEC/IEEE 29148 Requirements Specification Templates | ReqView 
+Documentation, diakses Juni 9, 2026, https://www.reqview.com/doc/iso-iec-
+ieee-29148-templates/ 
+10. ISO/IEC/IEEE 29148 Systems and Software Requirements Specification (SRS) 
+Example Template, diakses Juni 9, 2026, https://www.well-architected-
+guide.com/documents/iso-iec-ieee-29148-template/ 

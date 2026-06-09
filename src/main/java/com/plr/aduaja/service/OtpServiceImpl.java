@@ -4,6 +4,7 @@ import com.plr.aduaja.model.User;
 import com.plr.aduaja.model.OtpVerification;
 import com.plr.aduaja.repository.UserRepository;
 import com.plr.aduaja.repository.OtpVerificationRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +22,7 @@ import java.util.Random;
 // - Bagaimana validasi expiry OTP
 // - Bagaimana OTP diinvalidasi setelah digunakan
 // ============================================================
+@Slf4j
 @Service
 @Transactional
 public class OtpServiceImpl implements OtpService {  // ← POLYMORPHISM
@@ -44,9 +46,12 @@ public class OtpServiceImpl implements OtpService {  // ← POLYMORPHISM
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
 
+        String code = generateRandomOtp();
+        log.info("Generate OTP untuk userId={}, type={}, code={}", userId, type, code);
+
         OtpVerification otp = new OtpVerification();
         otp.setUser(user);
-        otp.setOtpCode(generateRandomOtp());  // ENKAPSULASI: method private
+        otp.setOtpCode(code);  // ENKAPSULASI: method private
         otp.setExpiresAt(LocalDateTime.now().plusMinutes(OTP_VALIDITY_MINUTES));
         otp.setOtpType(type);
         otp.setIsVerified(false);
@@ -80,17 +85,21 @@ public class OtpServiceImpl implements OtpService {  // ← POLYMORPHISM
 
     @Override  // ← POLYMORPHISM: Override dari interface
     public boolean verifyOtp(String userId, String otpCode) {
+        log.info("Verify OTP userId={}, code={}", userId, otpCode);
         Optional<OtpVerification> otpOpt = otpRepository
             .findByUserUserIdAndOtpCodeAndIsUsedFalse(userId, otpCode);
 
         if (otpOpt.isEmpty()) {
+            log.warn("OTP tidak ditemukan untuk userId={}, code={}", userId, otpCode);
             return false;
         }
 
         OtpVerification otp = otpOpt.get();
+        log.info("OTP ditemukan: id={}, expiresAt={}, type={}", otp.getOtpId(), otp.getExpiresAt(), otp.getOtpType());
 
         // Cek apakah OTP sudah kadaluarsa
         if (isOtpExpired(otp.getOtpId())) {
+            log.warn("OTP expired: id={}", otp.getOtpId());
             return false;
         }
 
@@ -107,6 +116,32 @@ public class OtpServiceImpl implements OtpService {  // ← POLYMORPHISM
         }
 
         return true;
+    }
+
+    @Override
+    public OtpVerification verifyOtpWithoutActivation(String userId, String otpCode) {
+        log.info("Verify OTP tanpa aktivasi userId={}, code={}", userId, otpCode);
+        Optional<OtpVerification> otpOpt = otpRepository
+            .findByUserUserIdAndOtpCodeAndIsUsedFalse(userId, otpCode);
+
+        if (otpOpt.isEmpty()) {
+            log.warn("OTP tidak ditemukan untuk userId={}, code={}", userId, otpCode);
+            return null;
+        }
+
+        OtpVerification otp = otpOpt.get();
+        log.info("OTP ditemukan: id={}, expiresAt={}, type={}", otp.getOtpId(), otp.getExpiresAt(), otp.getOtpType());
+
+        if (isOtpExpired(otp.getOtpId())) {
+            log.warn("OTP expired: id={}", otp.getOtpId());
+            return null;
+        }
+
+        otp.setIsVerified(true);
+        otp.setIsUsed(true);
+        otpRepository.save(otp);
+
+        return otp;
     }
 
     @Override  // ← POLYMORPHISM: Override dari interface (Overload)

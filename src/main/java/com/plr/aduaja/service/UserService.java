@@ -2,6 +2,7 @@ package com.plr.aduaja.service;
 
 import com.plr.aduaja.model.User;
 import com.plr.aduaja.model.UserProfile;
+import com.plr.aduaja.dto.CreateAdminDTO;
 import com.plr.aduaja.dto.CreatePetugasDTO;
 import com.plr.aduaja.dto.RegisterDTO;
 import com.plr.aduaja.dto.ProfileDTO;
@@ -41,6 +42,7 @@ public interface UserService {
     User createUser(RegisterDTO dto);
     User updatePendingRegistration(RegisterDTO dto, String userId);
     User createPetugas(CreatePetugasDTO dto);
+    User createAdmin(CreateAdminDTO dto);
     User updateUser(User user);
     User updateProfile(String userId, ProfileDTO dto);
     UserProfile getProfileByUserId(String userId);

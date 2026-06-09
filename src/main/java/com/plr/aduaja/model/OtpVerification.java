@@ -42,7 +42,7 @@ public class OtpVerification extends BaseEntity {  // ← INHERITANCE sejati
     // ENUM — Jenis OTP
     // ============================================================
     public enum OtpType {
-        REGISTRATION, FORGOT_PASSWORD, LOGIN
+        REGISTRATION, FORGOT_PASSWORD, LOGIN, ADMIN_ACTIVATION
     }
 
     // ENKAPSULASI: Getter & Setter untuk semua field PRIVATE

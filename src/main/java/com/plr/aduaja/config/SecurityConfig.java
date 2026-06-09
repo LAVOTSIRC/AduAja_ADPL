@@ -50,8 +50,8 @@ public class SecurityConfig {
                         .requestMatchers("/h2-console/**").permitAll()
 
                         // ===== AUTH ENDPOINTS (public) =====
-                        .requestMatchers("/admin/login", "/petugas/login", "/warga/login").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/admin/login", "/petugas/login", "/warga/login").permitAll()
+                        .requestMatchers("/admin/login", "/admin/verify-otp", "/admin/change-password", "/petugas/login", "/petugas/change-password", "/warga/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/admin/login", "/admin/verify-otp", "/admin/change-password", "/petugas/login", "/petugas/change-password", "/warga/login").permitAll()
                         .requestMatchers("/warga/register", "/warga/verify-otp").permitAll()
                         .requestMatchers(HttpMethod.POST, "/warga/register", "/warga/verify-otp").permitAll()
                         // FIX SCN-14: Lupa password harus bisa diakses tanpa login
