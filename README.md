@@ -13,7 +13,7 @@
 | 3 | El Fahreza Sufi | 241401042 |
 | 4 | Cristoval Pratama Siahaan | 241401057 |
 | 5 | M. Zidan Ruriano AG | 241401063 |
-| 6 | Akief Maulana Aulia | 241401072 |
+| 6 | Akief Maulana Aulia (Ketua) | 241401072 |
 
 ---
 
@@ -58,4 +58,4 @@
 
 ## Lisensi
 
-Proyek ini dibuat untuk keperluan tugas mata kuliah **Pemrograman Berorientasi Objek**.
+Proyek ini dibuat untuk keperluan tugas mata kuliah **Analisis dan Desain Perangkat Lunak**.
