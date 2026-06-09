@@ -9,6 +9,7 @@ import com.plr.aduaja.repository.ReportCategoryRepository;
 import com.plr.aduaja.repository.ReportRepository;
 import com.plr.aduaja.repository.UserRepository;
 import com.plr.aduaja.service.*;
+import com.plr.aduaja.util.DataMaskingUtil;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -182,7 +183,7 @@ public class AdminPusatController {
             m.put("id", r.getReportId());
             m.put("judul", r.getTicketNumber() != null ? r.getTicketNumber() : "Laporan");
             m.put("kategori", r.getCategory() != null ? r.getCategory().getCategoryName() : "Lainnya");
-            m.put("pelapor", r.getReporter() != null ? r.getReporter().getFullName() : "-");
+            m.put("pelapor", r.getReporter() != null ? DataMaskingUtil.maskName(r.getReporter().getFullName()) : "-");
             m.put("wilayah", r.getLocationHint() != null ? r.getLocationHint() : "-");
             m.put("tanggalMasuk", toDateStr(r.getSubmittedAt()));
             m.put("alasanDitolak", r.getRejectionReason() != null ? r.getRejectionReason() :
@@ -223,7 +224,7 @@ public class AdminPusatController {
             m.put("id", r.getReportId());
             m.put("judul", r.getTicketNumber() != null ? r.getTicketNumber() : "Laporan #" + r.getReportId().substring(0, 8));
             m.put("kategori", r.getCategory() != null ? r.getCategory().getCategoryName() : "Lainnya");
-            m.put("pelapor", r.getReporter() != null ? r.getReporter().getFullName() : "-");
+            m.put("pelapor", r.getReporter() != null ? DataMaskingUtil.maskName(r.getReporter().getFullName()) : "-");
             m.put("wilayah", r.getLocationHint() != null ? r.getLocationHint() : "-");
             m.put("status", "Tervalidasi");
             m.put("prioritasSistem", "Sedang");
@@ -727,7 +728,7 @@ public class AdminPusatController {
                 m.put("id", r.getReportId());
                 m.put("judul", r.getTicketNumber() != null ? r.getTicketNumber() : "Laporan #" + r.getReportId().substring(0, 8));
                 m.put("kategori", r.getCategory() != null ? r.getCategory().getCategoryName() : "Lainnya");
-                m.put("pelapor", r.getReporter() != null ? r.getReporter().getFullName() : "-");
+                m.put("pelapor", r.getReporter() != null ? DataMaskingUtil.maskName(r.getReporter().getFullName()) : "-");
                 m.put("wilayah", r.getLocationHint() != null ? r.getLocationHint() : "-");
                 m.put("status", "Tervalidasi");
                 m.put("prioritasSistem", "Sedang");
@@ -1054,7 +1055,7 @@ public class AdminPusatController {
         m.put("id", r.getReportId());
         m.put("judul", r.getTicketNumber());
         m.put("kategori", r.getCategory() != null ? r.getCategory().getCategoryName() : "Lainnya");
-        m.put("pelapor", r.getReporter() != null ? r.getReporter().getFullName() : "-");
+        m.put("pelapor", r.getReporter() != null ? DataMaskingUtil.maskName(r.getReporter().getFullName()) : "-");
         m.put("kontakPelapor", r.getReporter() != null ? r.getReporter().getEmail() : "-");
         m.put("wilayah", r.getLocationHint() != null ? r.getLocationHint() : "-");
         m.put("tanggalMasuk", toDateStr(r.getSubmittedAt()));

@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import com.plr.aduaja.model.*;
 import com.plr.aduaja.model.FieldTask.TaskStatus;
 import com.plr.aduaja.service.*;
+import com.plr.aduaja.util.DataMaskingUtil;
 import com.plr.aduaja.util.GeoUtils;
 import com.plr.aduaja.repository.ReportRepository;
 import com.plr.aduaja.repository.AuditLogRepository;
@@ -538,7 +539,7 @@ public class PetugasController {
             FieldTask ft = realTask.get();
             Map<String, Object> task = toPetugasTaskMap(ft, null, null);
             task.put("reporterPhone", ft.getReport() != null && ft.getReport().getReporter() != null
-                ? ft.getReport().getReporter().getPhoneNumber() : "-");
+                ? DataMaskingUtil.maskPhone(ft.getReport().getReporter().getPhoneNumber()) : "-");
 
             // pendingReason & pendingSince dari postponement terbaru
             fieldTaskService.getLatestPostponement(id).ifPresent(lp -> {
@@ -795,7 +796,7 @@ public class PetugasController {
             m.put("description", t.getReport() != null && t.getReport().getDescription() != null
                 ? t.getReport().getDescription() : "-");
             m.put("reporterName", t.getReport() != null && t.getReport().getReporter() != null
-                ? t.getReport().getReporter().getFullName() : "-");
+                ? DataMaskingUtil.maskName(t.getReport().getReporter().getFullName()) : "-");
             m.put("reportDate", t.getReport() != null && t.getReport().getSubmittedAt() != null
                 ? t.getReport().getSubmittedAt().format(ControllerHelper.DATETIME_FMT) : "-");
 
@@ -1019,7 +1020,7 @@ public class PetugasController {
             ? task.getReport().getReporter().getFullName() : "-");
         m.put("reporterPhone", task.getReport() != null && task.getReport().getReporter() != null
             && task.getReport().getReporter().getPhoneNumber() != null
-            ? task.getReport().getReporter().getPhoneNumber() : "-");
+            ? DataMaskingUtil.maskPhone(task.getReport().getReporter().getPhoneNumber()) : "-");
         m.put("reportDate", task.getReport() != null && task.getReport().getSubmittedAt() != null
             ? task.getReport().getSubmittedAt().format(ControllerHelper.DATE_FMT) : "-");
         m.put("rawReportDate", task.getReport() != null && task.getReport().getSubmittedAt() != null

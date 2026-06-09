@@ -77,6 +77,8 @@ public interface FieldTaskService {
 
     List<TaskEvidence> getEvidencesByTaskAndType(String taskId, TaskEvidence.EvidenceType type);
 
+    List<TaskEvidence> getEvidencesByReport(String reportId);
+
     FieldTask closeTaskByAdmin(String taskId);
 
     List<FieldTaskStatusRevision> getTaskRevisions(String taskId);

@@ -351,10 +351,7 @@
         document.body.style.overflow = '';
       }
 
-      function submitFormFinal() {
-        closePreview();
-        document.querySelector('form').submit();
-      }
+      function submitFormFinal() {}
 
       // Legacy: jaga kompatibilitas
       function validateAndSubmit() { validateAndShowPreview(); }
@@ -459,9 +456,17 @@
             this.loadingGps = true;
             if (navigator.geolocation) {
               navigator.geolocation.getCurrentPosition(
-                (pos) => { this.setMarker(pos.coords.latitude, pos.coords.longitude); this.loadingGps = false; },
+                (pos) => {
+                  // GAP-12: Tolak jika akurasi GPS > 20 meter
+                  if (pos.coords.accuracy > 20) {
+                    alert('Sinyal GPS tidak akurat (' + pos.coords.accuracy.toFixed(0) + ' m). Silakan coba lagi di area yang lebih terbuka.');
+                    this.loadingGps = false;
+                    return;
+                  }
+                  this.setMarker(pos.coords.latitude, pos.coords.longitude); this.loadingGps = false;
+                },
                 (err) => { alert('Gagal mengambil lokasi. Pastikan GPS aktif.'); this.loadingGps = false; },
-                { enableHighAccuracy: true }
+                { enableHighAccuracy: true, timeout: 15000 }
               );
             } else { alert('Browser tidak mendukung Geolocation.'); this.loadingGps = false; }
           },
@@ -681,6 +686,13 @@
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
             pos => {
+              // GAP-12: Tolak jika akurasi GPS > 20 meter
+              if (pos.coords.accuracy > 20) {
+                alert('Sinyal GPS tidak akurat (' + pos.coords.accuracy.toFixed(0) + ' m). Silakan coba lagi di area yang lebih terbuka.');
+                camState._photoLat = null;
+                camState._photoLng = null;
+                return;
+              }
               camState._photoLat = pos.coords.latitude.toFixed(6);
               camState._photoLng = pos.coords.longitude.toFixed(6);
               if (camState.parentScope) {
@@ -814,6 +826,121 @@
         // Desktop: click to focus
         vf.addEventListener('click', e => { _tapToFocus(e); });
       }
+
+      // ============================================================
+      // GAP-09: LOCALSTORAGE AUTO-SAVE — Simpan progress form ke browser cache
+      // ============================================================
+      const STORAGE_KEY = 'aduaja_draft_report';
+
+      function autoSaveForm() {
+        const data = {
+          categoryId: document.querySelector('select[name="categoryId"]')?.value || '',
+          description: document.querySelector('textarea[name="description"]')?.value || '',
+          locationHint: document.getElementById('locationHint')?.value || '',
+          latitude: document.getElementById('latInput')?.value || '',
+          longitude: document.getElementById('lngInput')?.value || '',
+          photoBase64: document.getElementById('photoBase64Input')?.value || '',
+          photoTakenAt: document.getElementById('photoTakenAtInput')?.value || '',
+          regionId: document.getElementById('regionIdInput')?.value || '',
+          savedAt: new Date().toISOString()
+        };
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        } catch (e) {
+          // localStorage penuh — abaikan
+        }
+      }
+
+      function restoreAutoSavedForm() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return;
+          const data = JSON.parse(raw);
+          const elapsed = Date.now() - new Date(data.savedAt).getTime();
+          if (elapsed > 3_600_000) {
+            localStorage.removeItem(STORAGE_KEY);
+            return;
+          }
+          const sel = document.querySelector('select[name="categoryId"]');
+          if (sel && data.categoryId) sel.value = data.categoryId;
+          const ta = document.querySelector('textarea[name="description"]');
+          if (ta && data.description) ta.value = data.description;
+          const lh = document.getElementById('locationHint');
+          if (lh && data.locationHint) lh.value = data.locationHint;
+          const lat = document.getElementById('latInput');
+          if (lat && data.latitude) lat.value = data.latitude;
+          const lng = document.getElementById('lngInput');
+          if (lng && data.longitude) lng.value = data.longitude;
+          const photo = document.getElementById('photoBase64Input');
+          if (photo && data.photoBase64) {
+            photo.value = data.photoBase64;
+            const ts = document.getElementById('photoTakenAtInput');
+            if (ts && data.photoTakenAt) ts.value = data.photoTakenAt;
+            const preview = document.querySelector('[x-data="reportForm()"]');
+            if (preview) {
+              preview.__x.$data.photoTaken = true;
+              preview.__x.$data.photoUrl = data.photoBase64;
+              preview.__x.$data.photoBase64 = data.photoBase64;
+            }
+          }
+          const rid = document.getElementById('regionIdInput');
+          if (rid && data.regionId) rid.value = data.regionId;
+        } catch (e) {
+          // abaikan error parse
+        }
+      }
+
+      function clearAutoSavedForm() {
+        try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+      }
+
+      let autoSaveTimer = null;
+      document.addEventListener('DOMContentLoaded', function() {
+        restoreAutoSavedForm();
+        autoSaveTimer = setInterval(autoSaveForm, 5000);
+      });
+
+      // Hapus draft setelah submit berhasil
+      function submitFormFinal() {
+        closePreview();
+        clearAutoSavedForm();
+        if (autoSaveTimer) clearInterval(autoSaveTimer);
+        document.querySelector('form').submit();
+      }
+
+      // ============================================================
+      // GAP-09: KOMPRESI GAMBAR SISI KLIEN — canvas.toBlob() sebelum upload
+      // ============================================================
+      function compressImage(base64, maxWidth, quality) {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = function() {
+            let w = img.width, h = img.height;
+            if (w > maxWidth) {
+              h = h * maxWidth / w;
+              w = maxWidth;
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          };
+          img.onerror = reject;
+          img.src = base64;
+        });
+      }
+
+      // Override capturePhoto to compress before storing
+      const _originalCapture = capturePhoto;
+      capturePhoto = function() {
+        _originalCapture();
+        compressImage(camState.photoBase64, 1920, 0.82).then(compressed => {
+          camState.photoBase64 = compressed;
+          camState.photoUrl = compressed;
+        }).catch(() => {});
+      };
 
       // ---- Init Event Listeners ----
       (function() {
