@@ -10,6 +10,7 @@ import com.plr.aduaja.repository.TaskPostponementRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -39,6 +40,7 @@ public class SlaMonitoringServiceImpl implements SlaMonitoringService {
     private ReportRepository reportRepository;
 
     // Scheduled job — cek SLA violations tiap jam
+    @Transactional
     @Scheduled(fixedRate = 3600000)
     public void checkSlaViolations() {
         LocalDateTime now = LocalDateTime.now();
@@ -71,6 +73,7 @@ public class SlaMonitoringServiceImpl implements SlaMonitoringService {
     }
 
     // Cron job — pantau batas waktu penundaan tugas tiap jam
+    @Transactional
     @Scheduled(fixedRate = 3600000)
     public void checkOverduePostponements() {
         LocalDateTime now = LocalDateTime.now();
@@ -95,6 +98,7 @@ public class SlaMonitoringServiceImpl implements SlaMonitoringService {
     }
 
     // Notifikasi Prediktif In-App Petugas (SLA Kritis & Terlewat)
+    @Transactional
     @Scheduled(fixedRate = 1800000) // 30 menit
     public void predictiveSlaNotificationAlert() {
         LocalDateTime now = LocalDateTime.now();

@@ -29,6 +29,7 @@ public interface OtpService {
     // ===========================
     boolean verifyOtp(String userId, String otpCode);
     boolean verifyOtpByEmail(String email, String otpCode);       // ← Overload
+    OtpVerification verifyOtpWithoutActivation(String userId, String otpCode); // ← Overload: verifikasi tanpa aktivasi akun
 
     OtpVerification getActiveOtp(String userId);
     void invalidateOtp(String otpId);
