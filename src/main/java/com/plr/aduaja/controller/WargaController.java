@@ -11,6 +11,7 @@ import com.plr.aduaja.model.ReportCategory;
 import com.plr.aduaja.model.ReportRevision;
 import com.plr.aduaja.model.SlaRecord;
 import com.plr.aduaja.model.Region;
+import com.plr.aduaja.model.TaskEvidence;
 import com.plr.aduaja.model.User;
 import com.plr.aduaja.repository.RegionRepository;
 import com.plr.aduaja.repository.ReportCategoryRepository;
@@ -93,11 +94,6 @@ public class WargaController {
     private boolean devMode;
 
     // ABSTRAKSI: Controller tidak inject Repository langsung
-
-    @ModelAttribute("devMode")
-    public boolean isDevMode() {
-        return devMode;
-    }
 
     @GetMapping("/warga/module")
     public String wargaModule() {
@@ -436,6 +432,35 @@ public class WargaController {
             log.warn("Gagal ambil status tugas untuk report {}: {}", id, ex.getMessage());
         }
         model.addAttribute("taskStatus", taskStatus);
+
+        List<Map<String, Object>> evidenceList = new ArrayList<>();
+        try {
+            List<TaskEvidence> evidences = fieldTaskService.getEvidencesByReport(report.getReportId());
+            for (TaskEvidence ev : evidences) {
+                Map<String, Object> evMap = new HashMap<>();
+                evMap.put("photoUrl", ev.getPhotoUrl());
+                String typeLabel = switch (ev.getEvidenceType()) {
+                    case SEBELUM -> "Kondisi Awal";
+                    case SESUDAH -> "Kondisi Akhir";
+                    case LAPOR_BALIK -> "Lapor Balik";
+                };
+                evMap.put("typeLabel", typeLabel);
+                evMap.put("evidenceType", ev.getEvidenceType().name());
+                evMap.put("takenAt", ev.getTakenAt() != null
+                        ? ev.getTakenAt().format(ControllerHelper.DATETIME_FMT) : "-");
+                if (ev.getTask().getOfficer() != null) {
+                    evMap.put("officerName", ev.getTask().getOfficer().getFullName());
+                }
+                if (ev.getLatitude() != null && ev.getLongitude() != null) {
+                    evMap.put("latitude", ev.getLatitude().toPlainString());
+                    evMap.put("longitude", ev.getLongitude().toPlainString());
+                }
+                evidenceList.add(evMap);
+            }
+        } catch (Exception ex) {
+            log.warn("Gagal ambil evidence untuk report {}: {}", id, ex.getMessage());
+        }
+        model.addAttribute("evidences", evidenceList);
 
         List<Map<String, Object>> revisionMaps = new ArrayList<>();
         if (report.getRevisions() != null) {

@@ -59,9 +59,19 @@ public class WargaAuthController {
     // ==========================================
     @GetMapping("/warga/login")
     public String loginPage(Model model,
-                            @RequestParam(value = "register", required = false) String register) {
+                            @RequestParam(value = "register", required = false) String register,
+                            @RequestParam(value = "error", required = false) String error) {
         model.addAttribute("loginDTO", new LoginDTO());
         model.addAttribute("registerDTO", new RegisterDTO());
+        if (error != null) {
+            String msg = switch (error) {
+                case "google_error" -> "Gagal mendapatkan data dari Google. Silakan coba lagi.";
+                case "user_not_found" -> "Akun tidak ditemukan. Silakan daftar terlebih dahulu.";
+                case "oauth2_failed" -> "Login Google gagal. Pastikan akun Google Anda valid atau coba lagi nanti.";
+                default -> "Login gagal. Silakan coba lagi.";
+            };
+            model.addAttribute("error", msg);
+        }
         return "warga/login";
     }
 

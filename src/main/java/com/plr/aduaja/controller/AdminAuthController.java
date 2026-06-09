@@ -1,8 +1,11 @@
 package com.plr.aduaja.controller;
 
+import com.plr.aduaja.model.OtpVerification;
 import com.plr.aduaja.model.User;
 import com.plr.aduaja.dto.LoginDTO;
 import com.plr.aduaja.service.AuthService;
+import com.plr.aduaja.service.OtpService;
+import com.plr.aduaja.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -12,6 +15,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 // ============================================================
@@ -26,6 +30,12 @@ public class AdminAuthController {
     @Autowired
     private AuthService authService;  // ← Abstraction: hanya tahu interface
 
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private OtpService otpService;
+
     // ==========================================
     // GET /admin/login — Halaman login admin
     // ==========================================
@@ -36,6 +46,9 @@ public class AdminAuthController {
         model.addAttribute("loginDTO", new LoginDTO());
         if (logout != null) {
             model.addAttribute("info", "Anda berhasil logout.");
+        }
+        if (error != null) {
+            model.addAttribute("error", "Sesi berakhir atau terjadi kesalahan. Silakan login ulang.");
         }
         return "admin/login";
     }
@@ -73,6 +86,24 @@ public class AdminAuthController {
             return "redirect:/admin/login";
         }
 
+        // Jika status PENDING (login pertama)
+        if (user.getAccountStatus() == User.AccountStatus.PENDING) {
+            // FR-AKN-09: Cek masa berlaku 24 jam password sementara
+            if (user.getCreatedAt() != null && user.getCreatedAt().plusHours(24).isBefore(LocalDateTime.now())) {
+                redirectAttributes.addFlashAttribute("error", "Password sementara sudah expired (lebih dari 24 jam). Hubungi Super Admin untuk reset akun.");
+                return "redirect:/admin/login";
+            }
+            // FR-AKN-10: Kirim OTP untuk verifikasi login pertama
+            session.setAttribute("pendingOtpUserId", user.getUserId());
+            session.setAttribute("pendingOtpEmail", user.getEmail());
+            try {
+                otpService.generateOtp(user.getUserId(), OtpVerification.OtpType.ADMIN_ACTIVATION);
+            } catch (Exception e) {
+                log.error("Gagal kirim OTP admin: {}", e.getMessage(), e);
+            }
+            return "redirect:/admin/verify-otp";
+        }
+
         // Simpan session
         session.setAttribute("userId", user.getUserId());
         session.setAttribute("userName", user.getFullName());
@@ -106,6 +137,92 @@ public class AdminAuthController {
     public String logout(HttpSession session) {
         session.invalidate();
         return "redirect:/admin/login?logout=true";
+    }
+
+    // ==========================================
+    // GET /admin/change-password — Paksa ganti password admin
+    // ==========================================
+    @GetMapping("/admin/change-password")
+    public String adminChangePasswordPage(HttpSession session, Model model) {
+        String userId = (String) session.getAttribute("forceChangePasswordUserId");
+        if (userId == null) {
+            return "redirect:/admin/login";
+        }
+        return "admin/change-password";
+    }
+
+    // ==========================================
+    // POST /admin/change-password — Proses ganti password admin
+    // ==========================================
+    @PostMapping("/admin/change-password")
+    public String adminChangePasswordPost(
+            @RequestParam("newPassword") String newPassword,
+            @RequestParam("confirmPassword") String confirmPassword,
+            HttpSession session,
+            RedirectAttributes redirectAttributes) {
+        String userId = (String) session.getAttribute("forceChangePasswordUserId");
+        if (userId == null) {
+            return "redirect:/admin/login";
+        }
+
+        if (newPassword == null || newPassword.length() < 6) {
+            redirectAttributes.addFlashAttribute("error", "Password minimal 6 karakter.");
+            return "redirect:/admin/change-password";
+        }
+        if (!newPassword.equals(confirmPassword)) {
+            redirectAttributes.addFlashAttribute("error", "Password tidak cocok.");
+            return "redirect:/admin/change-password";
+        }
+
+        try {
+            userService.changePassword(userId, newPassword);
+            session.removeAttribute("forceChangePasswordUserId");
+            redirectAttributes.addFlashAttribute("info", "Password berhasil diubah. Silakan login dengan password baru.");
+            return "redirect:/admin/login";
+        } catch (Exception e) {
+            log.error("Gagal ganti password admin: {}", e.getMessage(), e);
+            redirectAttributes.addFlashAttribute("error", "Gagal mengubah password.");
+            return "redirect:/admin/change-password";
+        }
+    }
+
+    // ==========================================
+    // GET /admin/verify-otp — Halaman verifikasi OTP admin
+    // ==========================================
+    @GetMapping("/admin/verify-otp")
+    public String adminVerifyOtpPage(HttpSession session, Model model) {
+        String userId = (String) session.getAttribute("pendingOtpUserId");
+        if (userId == null) {
+            return "redirect:/admin/login";
+        }
+        model.addAttribute("email", session.getAttribute("pendingOtpEmail"));
+        return "admin/verify-otp";
+    }
+
+    // ==========================================
+    // POST /admin/verify-otp — Proses verifikasi OTP admin
+    // ==========================================
+    @PostMapping("/admin/verify-otp")
+    public String adminVerifyOtpPost(
+            @RequestParam("otpCode") String otpCode,
+            HttpSession session,
+            RedirectAttributes redirectAttributes) {
+        String userId = (String) session.getAttribute("pendingOtpUserId");
+        if (userId == null) {
+            return "redirect:/admin/login";
+        }
+
+        OtpVerification verified = otpService.verifyOtpWithoutActivation(userId, otpCode.trim());
+        if (verified == null) {
+            redirectAttributes.addFlashAttribute("error", "Kode OTP salah atau sudah expired.");
+            return "redirect:/admin/verify-otp";
+        }
+
+        // OTP valid — redirect ke change-password
+        session.removeAttribute("pendingOtpUserId");
+        session.removeAttribute("pendingOtpEmail");
+        session.setAttribute("forceChangePasswordUserId", userId);
+        return "redirect:/admin/change-password";
     }
 
     // ==========================================

@@ -3,15 +3,24 @@ package com.plr.aduaja.controller;
 import com.plr.aduaja.service.ImageMigrationService;
 import com.plr.aduaja.service.SupabaseStorageService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/upload")
 public class UploadController {
+
+    private static final List<String> ALLOWED_CONTENT_TYPES = Arrays.asList(
+        MediaType.IMAGE_JPEG_VALUE, "image/jpg", MediaType.IMAGE_PNG_VALUE
+    );
+
+    private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList(".jpg", ".jpeg", ".png");
 
     @Autowired
     private SupabaseStorageService supabaseStorageService;
@@ -38,6 +47,14 @@ public class UploadController {
             ));
         }
 
+        String validationError = validateImageFile(file);
+        if (validationError != null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", validationError
+            ));
+        }
+
         try {
             String url = supabaseStorageService.upload(file, jenisGambar);
             return ResponseEntity.ok(Map.of(
@@ -51,6 +68,27 @@ public class UploadController {
                 "message", "Gagal upload: " + e.getMessage()
             ));
         }
+    }
+
+    private String validateImageFile(MultipartFile file) {
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase())) {
+            return "Hanya file JPG, JPEG, dan PNG yang diperbolehkan. Tipe file: " + contentType;
+        }
+
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename != null && !originalFilename.isBlank()) {
+            int dotIndex = originalFilename.lastIndexOf(".");
+            if (dotIndex == -1) {
+                return "File tidak memiliki ekstensi. Hanya .jpg, .jpeg, dan .png yang diperbolehkan.";
+            }
+            String ext = originalFilename.substring(dotIndex).toLowerCase();
+            if (!ALLOWED_EXTENSIONS.contains(ext)) {
+                return "Ekstensi file tidak didukung. Hanya .jpg, .jpeg, dan .png yang diperbolehkan.";
+            }
+        }
+
+        return null;
     }
 
     @PostMapping("/migrate")

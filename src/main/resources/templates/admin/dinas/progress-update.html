@@ -174,7 +174,7 @@
                 <!-- SLA badges -->
                 <div class="flex items-center gap-2 mt-2">
                   <span class="text-xs px-1.5 py-0.5 rounded font-medium"
-                        th:classappend="${ticket.slaStatus == 'BERJALAN'} ? 'bg-green-100 text-green-700' : (${ticket.slaStatus == 'TERTUNDA'} ? 'bg-yellow-100 text-yellow-700' : (${ticket.slaStatus == 'TERLAMBAT'} ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'))"
+                        th:classappend="${ticket.slaStatus == 'BERJALAN'} ? 'bg-green-100 text-green-700' : (${ticket.slaStatus == 'TERTUNDA'} ? 'bg-yellow-100 text-yellow-700' : (${ticket.slaStatus == 'TERLAMBAT'} ? 'bg-red-100 text-red-700 badge-terlambat' : 'bg-gray-100 text-gray-600'))"
                         th:text="'SLA: ' + ${ticket.slaStatus}">SLA</span>
                 </div>
               </a>
@@ -217,7 +217,7 @@
                 <div class="text-right flex-shrink-0 bg-gray-50 rounded-lg px-4 py-3 min-w-[160px]">
                   <p class="text-xs text-gray-500 mb-1">Status SLA</p>
                   <span class="text-sm font-bold px-2 py-0.5 rounded"
-                        th:classappend="${selectedTicket.slaStatus == 'BERJALAN'} ? 'bg-green-100 text-green-700' : (${selectedTicket.slaStatus == 'TERTUNDA'} ? 'bg-yellow-100 text-yellow-700' : (${selectedTicket.slaStatus == 'TERLAMBAT'} ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'))"
+                        th:classappend="${selectedTicket.slaStatus == 'BERJALAN'} ? 'bg-green-100 text-green-700' : (${selectedTicket.slaStatus == 'TERTUNDA'} ? 'bg-yellow-100 text-yellow-700' : (${selectedTicket.slaStatus == 'TERLAMBAT'} ? 'bg-red-100 text-red-700 badge-terlambat' : 'bg-gray-100 text-gray-600'))"
                         th:text="${selectedTicket.slaStatus}">-</span>
                   <p class="text-xs text-gray-500 mt-2">Deadline</p>
                   <p class="text-sm font-medium text-gray-800" th:text="${selectedTicket.deadline}">-</p>

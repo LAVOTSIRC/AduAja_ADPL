@@ -157,20 +157,33 @@
             <span class="text-gray-600">Jarak dari Anda:</span>
             <span class="font-semibold text-blue-600" x-text="distanceToTask !== null && distanceToTask !== undefined ? distanceToTask.toFixed(2) + ' km' : '-'">-</span>
           </div>
-          <div class="flex gap-2">
+          <div class="flex gap-2 flex-wrap" th:if="${task['location'] != null and task['location'] instanceof T(java.util.Map) and task['location']['latitude'] != null}">
+            <!-- Google Maps deep-link (FR-PTG-16) -->
             <a
-              th:if="${task['location'] != null and task['location'] instanceof T(java.util.Map) and task['location']['latitude'] != null}"
               th:href="|https://www.google.com/maps/dir/?api=1&destination=${task['location']['latitude']},${task['location']['longitude']}|"
               target="_blank"
               class="flex-1 bg-green-500 text-white py-2.5 rounded-lg font-medium hover:bg-green-600 transition-colors flex items-center justify-center gap-2 text-center text-sm"
             >
-              Buka di Google Maps
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+              Google Maps
             </a>
-            <!-- Form koreksi koordinat -->
-            <button type="button" x-on:click="showCoordModal = true" class="flex-1 bg-blue-50 text-blue-600 border border-blue-200 py-2.5 rounded-lg font-medium hover:bg-blue-100 transition-colors text-sm">
-              Koreksi Koordinat
-            </button>
+            <!-- Waze deep-link (FR-PTG-16) -->
+            <a
+              th:href="|https://waze.com/ul?ll=${task['location']['latitude']},${task['location']['longitude']}&navigate=yes|"
+              target="_blank"
+              class="flex-1 bg-sky-500 text-white py-2.5 rounded-lg font-medium hover:bg-sky-600 transition-colors flex items-center justify-center gap-2 text-center text-sm"
+            >
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.54 6.29C19.23 3.7 16.6 2 13.74 2c-3.56 0-6.5 2.54-7.12 5.93C4.36 8.45 2 10.96 2 14c0 3.31 2.69 6 6 6h11c2.76 0 5-2.24 5-5 0-2.64-1.88-4.93-4.46-5.41-.17-.71-.41-1.58-1-2.3z"/></svg>
+              Waze
+            </a>
           </div>
+          <div class="flex gap-2" th:unless="${task['location'] != null and task['location'] instanceof T(java.util.Map) and task['location']['latitude'] != null}">
+            <span class="text-sm text-gray-400 italic">Koordinat tidak tersedia untuk navigasi</span>
+          </div>
+          <!-- Form koreksi koordinat -->
+          <button type="button" x-on:click="showCoordModal = true" class="w-full bg-blue-50 text-blue-600 border border-blue-200 py-2.5 rounded-lg font-medium hover:bg-blue-100 transition-colors text-sm">
+            Koreksi Koordinat
+          </button>
         </div>
       </div>
 
