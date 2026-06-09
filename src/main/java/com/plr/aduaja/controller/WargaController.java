@@ -21,6 +21,7 @@ import com.plr.aduaja.service.NotificationService;
 import com.plr.aduaja.service.ReportService;
 import com.plr.aduaja.service.SlaRecordService;
 import com.plr.aduaja.service.SlaMonitoringService;
+import com.plr.aduaja.service.SystemErrorLogService;
 import com.plr.aduaja.service.FieldTaskService;
 import com.plr.aduaja.service.SupabaseStorageService;
 import com.plr.aduaja.service.UserService;
@@ -78,6 +79,9 @@ public class WargaController {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private SystemErrorLogService systemErrorLogService;
 
     @Autowired
     private RegionRepository regionRepository;
@@ -217,6 +221,10 @@ public class WargaController {
             return "redirect:/warga/report-detail?id=" + report.getReportId();
         } catch (Exception e) {
             log.error("Gagal buat laporan oleh user {}: {}", userId, e.getMessage(), e);
+            systemErrorLogService.logError(
+                "WargaController", "wargaCreateReportPost",
+                "Gagal buat laporan", e, userId, null
+            );
             redirectAttributes.addFlashAttribute("error", "Gagal mengirim laporan: " + e.getMessage());
             return "redirect:/warga/create-report";
         }
@@ -623,6 +631,10 @@ public class WargaController {
             redirectAttributes.addFlashAttribute("success", "Terima kasih! Laporan telah dikonfirmasi selesai.");
         } catch (Exception e) {
             log.error("Gagal konfirmasi laporan {}: {}", reportId, e.getMessage(), e);
+            systemErrorLogService.logError(
+                "WargaController", "confirmReport",
+                "Gagal konfirmasi laporan " + reportId, e, userId, reportId
+            );
             // Fallback: langsung update status ke SELESAI jika belum ada confirmation request
             try {
                 reportService.updateStatus(reportId, ReportStatus.SELESAI, "Dikonfirmasi oleh warga", userId);
@@ -685,6 +697,10 @@ public class WargaController {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
         } catch (Exception e) {
             log.error("Gagal ajukan sengketa {}: {}", reportId, e.getMessage(), e);
+            systemErrorLogService.logError(
+                "WargaController", "disputeReport",
+                "Gagal ajukan sengketa " + reportId, e, userId, reportId
+            );
             redirectAttributes.addFlashAttribute("error", "Gagal mengajukan sengketa: " + e.getMessage());
         }
         return "redirect:/warga/report-detail?id=" + reportId;

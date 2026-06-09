@@ -71,6 +71,9 @@ public class AdminPusatController {
     @Autowired
     private AuditLogService auditLogService;
 
+    @Autowired
+    private SystemErrorLogService systemErrorLogService;
+
     // ==========================================
     // ADMIN PUSAT — DASHBOARD
     // ==========================================
@@ -580,6 +583,11 @@ public class AdminPusatController {
             redirectAttributes.addFlashAttribute("success", notifTitle);
         } catch (Exception e) {
             log.error("Gagal validasi laporan {}: {}", ticketId, e.getMessage(), e);
+            systemErrorLogService.logError(
+                "AdminPusatController", "adminValidationPost",
+                "Gagal validasi laporan " + ticketId, e,
+                adminId, ticketId
+            );
             redirectAttributes.addFlashAttribute("error", "Gagal memproses validasi: " + e.getMessage());
         }
         return redirectUrl;
@@ -844,6 +852,11 @@ public class AdminPusatController {
             }
         } catch (Exception e) {
             log.error("Gagal disposisi laporan {}: {}", ticketId, e.getMessage(), e);
+            systemErrorLogService.logError(
+                "AdminPusatController", "adminDisposisiPost",
+                "Gagal disposisi laporan " + ticketId, e,
+                adminId, ticketId
+            );
             redirectAttributes.addFlashAttribute("error", "Gagal disposisi: " + e.getMessage());
         }
 
@@ -941,6 +954,11 @@ public class AdminPusatController {
             disputeService.resolveDispute(id, resolution, adminId, catatan);
         } catch (Exception e) {
             log.error("Gagal resolusi sengketa {}: {}", id, e.getMessage(), e);
+            systemErrorLogService.logError(
+                "AdminPusatController", "adminSengketaPost",
+                "Gagal resolusi sengketa " + id, e,
+                adminId, id
+            );
         }
         return "redirect:/admin/sengketa" + (id != null ? "?id=" + id : "");
     }

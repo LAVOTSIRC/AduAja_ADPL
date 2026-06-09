@@ -48,6 +48,9 @@ public class DisputeServiceImpl implements DisputeService {
     @Autowired
     private NotificationService notificationService;
 
+    @Autowired
+    private SystemErrorLogService systemErrorLogService;
+
     private static final Logger log = LoggerFactory.getLogger(DisputeServiceImpl.class);
 
     @Override  // ← POLYMORPHISM: Override dari interface
@@ -146,6 +149,11 @@ public class DisputeServiceImpl implements DisputeService {
             }
         } catch (Exception e) {
             log.warn("Gagal mengirim notifikasi sengketa ke admin: {}", e.getMessage());
+            systemErrorLogService.logError(
+                "DisputeServiceImpl", "createDispute",
+                "Gagal mengirim notifikasi sengketa", e,
+                disputantId, dto.getReportId()
+            );
         }
 
         return saved;
@@ -203,6 +211,10 @@ public class DisputeServiceImpl implements DisputeService {
             }
         } catch (Exception e) {
             log.warn("Gagal mengirim notifikasi putusan sengketa: {}", e.getMessage());
+            systemErrorLogService.logError(
+                "DisputeServiceImpl", "resolveDispute",
+                "Gagal mengirim notifikasi putusan sengketa", e
+            );
         }
 
         return saved;

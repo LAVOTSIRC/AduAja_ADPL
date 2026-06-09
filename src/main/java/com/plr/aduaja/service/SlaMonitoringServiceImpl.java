@@ -38,6 +38,9 @@ public class SlaMonitoringServiceImpl implements SlaMonitoringService {
     @Autowired
     private ReportRepository reportRepository;
 
+    @Autowired
+    private SystemErrorLogService systemErrorLogService;
+
     // Scheduled job — cek SLA violations tiap jam
     @Scheduled(fixedRate = 3600000)
     public void checkSlaViolations() {
@@ -67,6 +70,10 @@ public class SlaMonitoringServiceImpl implements SlaMonitoringService {
         } catch (Exception e) {
             org.slf4j.LoggerFactory.getLogger(SlaMonitoringServiceImpl.class)
                 .error("[SCN-08] Gagal proses confirmation timeouts: {}", e.getMessage(), e);
+            systemErrorLogService.logError(
+                "SlaMonitoringServiceImpl", "checkSlaViolations",
+                "[SCN-08] Gagal proses confirmation timeouts", e
+            );
         }
     }
 
