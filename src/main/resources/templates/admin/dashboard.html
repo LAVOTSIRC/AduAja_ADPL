@@ -1205,7 +1205,7 @@
                       <span class="text-xs px-2.5 py-1 rounded-full font-semibold bg-blue-50 text-blue-700 border border-blue-100 ml-1" th:text="${report.kategori}"></span>
                     </p>
                   </div>
-                  <span th:if="${report.slaStatus == 'Terlambat'}" class="aduaja-badge bg-red-600 text-white flex-shrink-0">Terlambat SLA</span>
+                  <span th:if="${report.slaStatus == 'Terlambat'}" class="aduaja-badge bg-red-600 text-white flex-shrink-0 badge-terlambat">Terlambat SLA</span>
                   <span th:if="${report.slaStatus != 'Terlambat'}" class="aduaja-badge aduaja-badge-warning flex-shrink-0" th:text="${report.slaStatus}"></span>
                 </div>
 

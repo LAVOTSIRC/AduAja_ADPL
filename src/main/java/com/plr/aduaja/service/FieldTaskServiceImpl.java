@@ -566,7 +566,10 @@ public class FieldTaskServiceImpl implements FieldTaskService {
     }
 
     @Override
-    @Transactional
+    public List<TaskEvidence> getEvidencesByReport(String reportId) {
+        return taskEvidenceRepository.findByTaskReportReportId(reportId);
+    }
+
     public void saveTaskEvidenceDirect(String taskId, String photoUrl, TaskEvidence.EvidenceType type) {
         FieldTask task = fieldTaskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Task not found"));

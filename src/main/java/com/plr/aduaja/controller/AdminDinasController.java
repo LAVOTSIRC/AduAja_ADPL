@@ -10,6 +10,7 @@ import com.plr.aduaja.repository.TaskPostponementRepository;
 import com.plr.aduaja.repository.UserProfileRepository;
 import com.plr.aduaja.repository.UserRepository;
 import com.plr.aduaja.service.*;
+import com.plr.aduaja.util.DataMaskingUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -220,7 +221,7 @@ public class AdminDinasController {
                 m.put("id", d.getReport() != null ? d.getReport().getReportId() : "-");
                 m.put("judul", d.getReport() != null ? (d.getReport().getTicketNumber() != null ? d.getReport().getTicketNumber() : "Laporan") : "Disposisi");
                 m.put("kategori", d.getReport() != null && d.getReport().getCategory() != null ? d.getReport().getCategory().getCategoryName() : "Lainnya");
-                m.put("pelapor", d.getReport() != null && d.getReport().getReporter() != null ? d.getReport().getReporter().getFullName() : "-");
+                m.put("pelapor", d.getReport() != null && d.getReport().getReporter() != null ? DataMaskingUtil.maskName(d.getReport().getReporter().getFullName()) : "-");
                 m.put("wilayah", d.getReport() != null && d.getReport().getLocationHint() != null ? d.getReport().getLocationHint() : "-");
                 m.put("tanggalDisposisi", d.getDispatchedAt() != null ? d.getDispatchedAt().format(ControllerHelper.DATE_FMT) : "-");
                 m.put("prioritas", d.getPriority() != null ? d.getPriority() : "Sedang");
@@ -392,7 +393,7 @@ public class AdminDinasController {
                     }
                 }
                 m.put("prioritas", prioritas);
-                m.put("pelapor", t.getReport() != null && t.getReport().getReporter() != null ? t.getReport().getReporter().getFullName() : "-");
+                m.put("pelapor", t.getReport() != null && t.getReport().getReporter() != null ? DataMaskingUtil.maskName(t.getReport().getReporter().getFullName()) : "-");
                 m.put("officerName", t.getOfficer() != null ? t.getOfficer().getFullName() : "-");
                 String deadlineStr = "-";
                 String slaStatus = "-";
@@ -508,7 +509,7 @@ public class AdminDinasController {
                     if (disp.isPresent() && disp.get().getPriority() != null) prio = disp.get().getPriority();
                 } catch (Exception e) { /* ignore */ }
                 m.put("prioritas", prio);
-                m.put("pelapor", t.getReport() != null && t.getReport().getReporter() != null ? t.getReport().getReporter().getFullName() : "-");
+                m.put("pelapor", t.getReport() != null && t.getReport().getReporter() != null ? DataMaskingUtil.maskName(t.getReport().getReporter().getFullName()) : "-");
                 m.put("wilayah", t.getReport() != null && t.getReport().getLocationHint() != null ? t.getReport().getLocationHint() : "-");
                 m.put("foto", dummyReportImage());
                 List<Map<String, Object>> ph = new ArrayList<>();
@@ -585,7 +586,7 @@ public class AdminDinasController {
             m.put("statusSengketa", d.getResolution() == null ? "Menunggu Tinjauan" : "Selesai");
             m.put("prioritas", "Sedang");
             m.put("tanggalSengketa", d.getFiledAt() != null ? d.getFiledAt().format(ControllerHelper.DATE_FMT) : "-");
-            m.put("pelapor", r != null && r.getReporter() != null ? r.getReporter().getFullName() : "-");
+            m.put("pelapor", r != null && r.getReporter() != null ? DataMaskingUtil.maskName(r.getReporter().getFullName()) : "-");
             m.put("tanggalLaporan", r != null && r.getSubmittedAt() != null ? r.getSubmittedAt().format(ControllerHelper.DATE_FMT) : "-");
             m.put("tanggalSelesai", d.getResolvedAt() != null ? d.getResolvedAt().format(ControllerHelper.DATE_FMT) : "-");
             m.put("statusSebelum", r != null && r.getStatus() != null ? r.getStatus().name() : "-");

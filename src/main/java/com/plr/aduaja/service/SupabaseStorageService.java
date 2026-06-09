@@ -66,17 +66,19 @@ public class SupabaseStorageService {
                 String[] parts = base64Data.split(",");
                 String header = parts[0];
                 if (header.contains("png")) mimeType = "image/png";
-                else if (header.contains("gif")) mimeType = "image/gif";
-                else if (header.contains("webp")) mimeType = "image/webp";
+                else mimeType = "image/jpeg";
                 imageBytes = Base64.getDecoder().decode(parts[1]);
             } else {
                 imageBytes = Base64.getDecoder().decode(base64Data);
             }
 
+            if (!"image/jpeg".equals(mimeType) && !"image/png".equals(mimeType)) {
+                log.warn("Tipe file tidak didukung untuk Base64 upload: {}", mimeType);
+                return null;
+            }
+
             String ext = switch (mimeType) {
                 case "image/png" -> ".png";
-                case "image/gif" -> ".gif";
-                case "image/webp" -> ".webp";
                 default -> ".jpg";
             };
 
