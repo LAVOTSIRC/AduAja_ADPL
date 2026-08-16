@@ -2,7 +2,9 @@ package com.plr.aduaja.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
 import java.math.BigDecimal;
+import java.sql.Types;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +20,7 @@ public class Report extends BaseEntity {  // ← INHERITANCE sejati
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @JdbcTypeCode(Types.VARCHAR)
     @Column(name = "report_id")
     private String reportId;
 

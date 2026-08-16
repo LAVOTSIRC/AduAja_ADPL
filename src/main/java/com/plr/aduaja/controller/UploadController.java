@@ -1,7 +1,7 @@
 package com.plr.aduaja.controller;
 
 import com.plr.aduaja.service.ImageMigrationService;
-import com.plr.aduaja.service.SupabaseStorageService;
+import com.plr.aduaja.service.StorageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +23,7 @@ public class UploadController {
     private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList(".jpg", ".jpeg", ".png");
 
     @Autowired
-    private SupabaseStorageService supabaseStorageService;
+    private StorageService storageService;
 
     @Autowired
     private ImageMigrationService imageMigrationService;
@@ -56,7 +56,7 @@ public class UploadController {
         }
 
         try {
-            String url = supabaseStorageService.upload(file, jenisGambar);
+            String url = storageService.upload(file, jenisGambar);
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "url", url,

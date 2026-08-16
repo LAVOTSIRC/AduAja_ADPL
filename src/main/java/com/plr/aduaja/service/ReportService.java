@@ -103,7 +103,7 @@ public interface ReportService {
             dto.setPhotoTakenAt(report.getPhotoTakenAt().toString());
         }
         if (report.getCategory() != null) {
-            dto.setCategoryId(report.getCategory().getCategoryId());
+            dto.setCategoryId(report.getCategory().getCategoryId().toString());
         }
         return createReport(dto, userId);
     }

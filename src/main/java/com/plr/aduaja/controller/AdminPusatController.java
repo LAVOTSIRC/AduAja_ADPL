@@ -1417,7 +1417,7 @@ public class AdminPusatController {
         BigDecimal maxLng = BigDecimal.valueOf(lng + delta);
 
         List<Report> nearby = reportRepository.findByCategoryAndCoordinateRange(
-                report.getCategory().getCategoryId(), minLat, maxLat, minLng, maxLng);
+                report.getCategory().getCategoryId().toString(), minLat, maxLat, minLng, maxLng);
 
         // Filter exclude diri sendiri dan pastikan dalam 50m menggunakan haversine
         for (Report other : nearby) {

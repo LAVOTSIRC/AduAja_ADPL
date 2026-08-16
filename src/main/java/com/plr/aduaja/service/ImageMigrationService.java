@@ -26,7 +26,7 @@ public class ImageMigrationService {
     private static final Logger log = LoggerFactory.getLogger(ImageMigrationService.class);
 
     @Autowired
-    private SupabaseStorageService supabaseStorageService;
+    private StorageService storageService;
 
     @Autowired
     private ReportRepository reportRepository;
@@ -55,7 +55,7 @@ public class ImageMigrationService {
         for (Report r : reports) {
             String photo = r.getPhotoBase64();
             if (photo != null && !photo.isBlank() && !photo.startsWith("http")) {
-                String url = supabaseStorageService.uploadBase64(photo, "laporan");
+                String url = storageService.uploadBase64(photo, "laporan");
                 if (url != null) {
                     r.setPhotoBase64(url);
                     reportRepository.save(r);
@@ -95,7 +95,7 @@ public class ImageMigrationService {
         for (TaskEvidence e : evidences) {
             String photo = e.getPhotoUrl();
             if (photo != null && !photo.isBlank() && !photo.startsWith("http")) {
-                String url = supabaseStorageService.uploadBase64(photo, "bukti");
+                String url = storageService.uploadBase64(photo, "bukti");
                 if (url != null) {
                     e.setPhotoUrl(url);
                     taskEvidenceRepository.save(e);
@@ -113,7 +113,7 @@ public class ImageMigrationService {
         for (DisputeRecord d : disputes) {
             String photo = d.getEvidencePhotoUrl();
             if (photo != null && !photo.isBlank() && !photo.startsWith("http")) {
-                String url = supabaseStorageService.uploadBase64(photo, "sengketa");
+                String url = storageService.uploadBase64(photo, "sengketa");
                 if (url != null) {
                     d.setEvidencePhotoUrl(url);
                     disputeRecordRepository.save(d);
@@ -149,6 +149,6 @@ public class ImageMigrationService {
         java.util.Base64.Encoder encoder = java.util.Base64.getEncoder();
         String base64 = "data:" + mimeType + ";base64," + encoder.encodeToString(bytes);
 
-        return supabaseStorageService.uploadBase64(base64, jenisGambar);
+        return storageService.uploadBase64(base64, jenisGambar);
     }
 }

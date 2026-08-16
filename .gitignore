@@ -43,3 +43,5 @@ data/
 
 ### Environment ###
 /.env
+.env.*
+!.env.example

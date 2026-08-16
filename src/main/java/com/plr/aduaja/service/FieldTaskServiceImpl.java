@@ -51,7 +51,7 @@ public class FieldTaskServiceImpl implements FieldTaskService {
     private ReportService reportService;
 
     @Autowired
-    private SupabaseStorageService supabaseStorageService;
+    private StorageService storageService;
 
     @Autowired
     private FieldTaskStatusRevisionRepository fieldTaskStatusRevisionRepository;
@@ -549,7 +549,7 @@ public class FieldTaskServiceImpl implements FieldTaskService {
         String finalUrl = watermarkedPhotoBase64;
         try {
             if (watermarkedPhotoBase64 != null && watermarkedPhotoBase64.startsWith("data:image")) {
-                finalUrl = supabaseStorageService.uploadBase64(watermarkedPhotoBase64, "bukti");
+                finalUrl = storageService.uploadBase64(watermarkedPhotoBase64, "bukti");
             }
         } catch (Exception e) {
             // If upload fails, save the base64 string directly
@@ -584,7 +584,7 @@ public class FieldTaskServiceImpl implements FieldTaskService {
         String finalUrl = photoUrl;
         try {
             if (photoUrl != null && photoUrl.startsWith("data:image")) {
-                finalUrl = supabaseStorageService.uploadBase64(photoUrl, "bukti");
+                finalUrl = storageService.uploadBase64(photoUrl, "bukti");
             }
         } catch (Exception e) {
             // Ignore

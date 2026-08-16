@@ -7,7 +7,7 @@ import com.plr.aduaja.dto.RegisterDTO;
 import com.plr.aduaja.dto.ProfileDTO;
 import com.plr.aduaja.dto.ResetPasswordDTO;
 import com.plr.aduaja.model.UserProfile;
-import com.plr.aduaja.service.SupabaseStorageService;
+import com.plr.aduaja.service.StorageService;
 import com.plr.aduaja.service.UserService;
 import com.plr.aduaja.service.AuthService;
 import com.plr.aduaja.service.OtpService;
@@ -49,7 +49,7 @@ public class WargaAuthController {
     private OtpService otpService;
 
     @Autowired
-    private SupabaseStorageService supabaseStorageService;
+    private StorageService storageService;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -319,7 +319,7 @@ public class WargaAuthController {
         }
 
         try {
-            String photoUrl = supabaseStorageService.upload(file, "profile");
+            String photoUrl = storageService.upload(file, "profile");
 
             User user = userService.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));

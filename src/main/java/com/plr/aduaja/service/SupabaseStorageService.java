@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -14,7 +15,8 @@ import java.util.Base64;
 import java.util.UUID;
 
 @Service
-public class SupabaseStorageService {
+@ConditionalOnProperty(name = "storage.type", havingValue = "supabase")
+public class SupabaseStorageService implements StorageService {
 
     private static final Logger log = LoggerFactory.getLogger(SupabaseStorageService.class);
 
@@ -30,6 +32,7 @@ public class SupabaseStorageService {
     @Autowired
     private RestTemplate restTemplate;
 
+    @Override
     public String upload(MultipartFile file, String jenisGambar) {
         try {
             String fileName = generateFileName(file.getOriginalFilename());
@@ -53,6 +56,7 @@ public class SupabaseStorageService {
         }
     }
 
+    @Override
     public String uploadBase64(String base64Data, String jenisGambar) {
         if (base64Data == null || base64Data.isBlank()) {
             return null;

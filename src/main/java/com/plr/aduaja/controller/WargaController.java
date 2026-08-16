@@ -24,7 +24,7 @@ import com.plr.aduaja.service.SlaRecordService;
 import com.plr.aduaja.service.SlaMonitoringService;
 import com.plr.aduaja.service.SystemErrorLogService;
 import com.plr.aduaja.service.FieldTaskService;
-import com.plr.aduaja.service.SupabaseStorageService;
+import com.plr.aduaja.service.StorageService;
 import com.plr.aduaja.service.UserService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,7 +76,7 @@ public class WargaController {
     private FieldTaskService fieldTaskService;
 
     @Autowired
-    private SupabaseStorageService supabaseStorageService;
+    private StorageService storageService;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -198,7 +198,7 @@ public class WargaController {
             // Upload foto ke Supabase jika ada
             if (dto.getPhotoBase64() != null && !dto.getPhotoBase64().isBlank()
                     && !dto.getPhotoBase64().startsWith("http")) {
-                String url = supabaseStorageService.uploadBase64(dto.getPhotoBase64(), "laporan");
+                String url = storageService.uploadBase64(dto.getPhotoBase64(), "laporan");
                 if (url != null) dto.setPhotoBase64(url);
             }
             Report report = reportService.createReport(dto, userId);
@@ -713,7 +713,7 @@ public class WargaController {
             // Upload bukti sengketa ke Supabase
             String evidenceUrl = evidenceBase64.isBlank() ? null :
                 (evidenceBase64.startsWith("http") ? evidenceBase64 :
-                 supabaseStorageService.uploadBase64(evidenceBase64, "sengketa"));
+                 storageService.uploadBase64(evidenceBase64, "sengketa"));
             dto.setEvidencePhotoUrl(evidenceUrl);
             disputeService.createDispute(dto, userId);
             redirectAttributes.addFlashAttribute("success", "Sengketa berhasil diajukan. Admin akan meninjau laporan Anda.");
@@ -773,7 +773,7 @@ public class WargaController {
             }
             if (photoData != null && !photoData.isBlank()) {
                 String photoUrl = photoData.startsWith("http") ? photoData :
-                    supabaseStorageService.uploadBase64(photoData, "laporan");
+                    storageService.uploadBase64(photoData, "laporan");
                 if (photoUrl != null) { report.setPhotoBase64(photoUrl); anyUpdate = true; }
             }
             // Update kategori jika diisi
@@ -1027,7 +1027,7 @@ public class WargaController {
 
                 String selectedCategoryId = categoryId;
                 if (selectedCategoryId == null || selectedCategoryId.isBlank()) {
-                    selectedCategoryId = categories.get(rand.nextInt(categories.size())).getCategoryId();
+                    selectedCategoryId = categories.get(rand.nextInt(categories.size())).getCategoryId().toString();
                 }
 
                 // Untuk mode RANDOM (tanpa lokasi tetap), cari region per laporan

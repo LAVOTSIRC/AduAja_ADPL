@@ -69,7 +69,7 @@ public class PetugasController {
     private PasswordEncoder passwordEncoder;
 
     @Autowired
-    private SupabaseStorageService supabaseStorageService;
+    private StorageService storageService;
 
     @GetMapping("/petugas/home")
     public String petugasHome() {
@@ -320,7 +320,7 @@ public class PetugasController {
                             for (MultipartFile photo : photos) {
                                 if (!photo.isEmpty()) {
                                     try {
-                                        String url = supabaseStorageService.upload(photo, "bukti");
+                                        String url = storageService.upload(photo, "bukti");
                                         fieldTaskService.saveTaskEvidenceDirect(id, url, TaskEvidence.EvidenceType.LAPOR_BALIK);
                                     } catch (Exception e) {
                                         log.error("Gagal upload foto lapor balik: {}", e.getMessage());
@@ -334,7 +334,7 @@ public class PetugasController {
                             for (MultipartFile document : documents) {
                                 if (!document.isEmpty()) {
                                     try {
-                                        String url = supabaseStorageService.upload(document, "bukti");
+                                        String url = storageService.upload(document, "bukti");
                                         fieldTaskService.saveTaskEvidenceDirect(id, url, TaskEvidence.EvidenceType.LAPOR_BALIK);
                                     } catch (Exception e) {
                                         log.error("Gagal upload dokumen lapor balik: {}", e.getMessage());

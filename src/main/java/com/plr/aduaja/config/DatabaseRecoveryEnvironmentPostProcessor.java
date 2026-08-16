@@ -1,5 +1,7 @@
 package com.plr.aduaja.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.EnvironmentPostProcessor;
 import org.springframework.core.Ordered;
@@ -16,19 +18,27 @@ import java.util.stream.Stream;
 
 public class DatabaseRecoveryEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
 
+    private static final Logger log = LoggerFactory.getLogger(DatabaseRecoveryEnvironmentPostProcessor.class);
     private static final String DOTENV_PROPERTY_SOURCE = "aduaja-dotenv";
 
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
         loadDotenv(environment);
-        DatabaseStartupRecovery.prepareDatabase();
+        String dbType = environment.getProperty("DB_TYPE", "postgres");
+        if ("h2".equalsIgnoreCase(dbType)) {
+            DatabaseStartupRecovery.prepareDatabase();
+        }
     }
 
     private void loadDotenv(ConfigurableEnvironment environment) {
-        Path dotenvPath = Path.of(".env");
-        if (!Files.exists(dotenvPath)) {
+        Path dotenvPath = findDotenvPath();
+        if (dotenvPath == null) {
+            log.warn(".env tidak ditemukan. Pastikan file .env ada di folder project.");
             return;
         }
+
+        log.info("Memuat .env dari: {}", dotenvPath.toAbsolutePath());
+
         try {
             Map<String, Object> props = new HashMap<>();
             try (Stream<String> lines = Files.lines(dotenvPath)) {
@@ -46,15 +56,32 @@ public class DatabaseRecoveryEnvironmentPostProcessor implements EnvironmentPost
             }
             if (!props.isEmpty()) {
                 MutablePropertySources sources = environment.getPropertySources();
+                MapPropertySource source = new MapPropertySource(DOTENV_PROPERTY_SOURCE, props);
                 if (sources.contains(DOTENV_PROPERTY_SOURCE)) {
-                    sources.replace(DOTENV_PROPERTY_SOURCE, new MapPropertySource(DOTENV_PROPERTY_SOURCE, props));
+                    sources.replace(DOTENV_PROPERTY_SOURCE, source);
                 } else {
-                    sources.addFirst(new MapPropertySource(DOTENV_PROPERTY_SOURCE, props));
+                    sources.addFirst(source);
                 }
+                log.info("Memuat {} variabel dari .env", props.size());
             }
         } catch (IOException e) {
-            throw new RuntimeException("Gagal membaca file .env", e);
+            log.error("Gagal membaca .env: {}", e.getMessage());
         }
+    }
+
+    private Path findDotenvPath() {
+        Path cwd = Path.of(".env").toAbsolutePath();
+        if (Files.exists(cwd)) return cwd;
+
+        try {
+            Path jarDir = Path.of(getClass().getProtectionDomain().getCodeSource().getLocation().toURI()).getParent();
+            if (jarDir != null) {
+                Path nextToJar = jarDir.resolve(".env");
+                if (Files.exists(nextToJar)) return nextToJar;
+            }
+        } catch (Exception ignored) {}
+
+        return null;
     }
 
     @Override
@@ -62,4 +89,3 @@ public class DatabaseRecoveryEnvironmentPostProcessor implements EnvironmentPost
         return Ordered.HIGHEST_PRECEDENCE;
     }
 }
-
